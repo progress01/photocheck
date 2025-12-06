@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>照片歸檔神器 v5.1 (完整版)</title>
+    <title>照片歸檔神器 v5.2 (完整教學版)</title>
     <style>
         :root { --primary: #0d6efd; --purple: #6610f2; --success: #198754; --warning: #ffc107; --danger: #dc3545; --bg: #f8f9fa; --overlay-bg: rgba(0,0,0,0.85); }
         body { font-family: "Microsoft JhengHei", "Segoe UI", sans-serif; margin: 0; padding: 20px; background: var(--bg); color: #333; height: 100vh; box-sizing: border-box; display: flex; flex-direction: column; overflow: hidden; }
@@ -27,7 +27,7 @@
         .btn-help { background: var(--purple); color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 15px; display: flex; align-items: center; gap: 5px; transition: 0.2s; }
         .btn-help:hover { background: #520dc2; box-shadow: 0 2px 8px rgba(102, 16, 242, 0.3); }
 
-        .btn-upload { background: var(--success); color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 15px; display: flex; align-items: center; gap: 5px; transition: 0.2s; pointer-events: none; opacity: 0.5; } /* 預設鎖住 */
+        .btn-upload { background: var(--success); color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 15px; display: flex; align-items: center; gap: 5px; transition: 0.2s; pointer-events: none; opacity: 0.5; } 
         .btn-upload.active { pointer-events: auto; opacity: 1; }
         .btn-upload:hover { background: #157347; box-shadow: 0 2px 8px rgba(25, 135, 84, 0.3); }
 
@@ -70,9 +70,18 @@
 
         /* --- 教學手冊 Modal --- */
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; justify-content: center; align-items: center; }
-        .modal-content { background: white; width: 90%; max-width: 800px; height: 85vh; border-radius: 12px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
-        .modal-header { padding: 20px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; background: #f8f9fa; }
-        .modal-body { padding: 30px; overflow-y: auto; line-height: 1.6; }
+        .modal-content { background: white; width: 90%; max-width: 850px; height: 90vh; border-radius: 12px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
+        
+        /* Tab 導航 */
+        .modal-tabs { display: flex; background: #f8f9fa; border-bottom: 1px solid #ddd; }
+        .tab-btn { flex: 1; padding: 15px; cursor: pointer; font-weight: bold; color: #666; text-align: center; border-bottom: 3px solid transparent; transition: 0.2s; }
+        .tab-btn:hover { background: #eee; }
+        .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); background: white; }
+        .modal-close-btn { width: 50px; border: none; background: none; font-size: 24px; cursor: pointer; color: #999; }
+        .modal-close-btn:hover { color: #333; }
+
+        .modal-body { padding: 30px; overflow-y: auto; line-height: 1.6; flex: 1; display: none; }
+        .modal-body.active { display: block; }
         
         .help-section { margin-bottom: 30px; }
         .help-title { font-size: 1.1rem; font-weight: bold; color: var(--primary); border-left: 4px solid var(--primary); padding-left: 10px; margin-bottom: 15px; }
@@ -80,6 +89,14 @@
         .step-list li { margin-bottom: 12px; display: flex; align-items: start; gap: 10px; }
         .step-num { background: #eee; color: #555; min-width: 24px; height: 24px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 12px; font-weight: bold; margin-top: 2px; }
         
+        /* .bat 原理圖解 */
+        .bat-diagram { display: flex; gap: 15px; margin: 20px 0; justify-content: space-around; background: #f8f9fa; padding: 20px; border-radius: 8px; border: 1px dashed #ccc; text-align: center; }
+        .bat-step { flex: 1; position: relative; }
+        .bat-step::after { content: "➔"; position: absolute; right: -15px; top: 30%; color: #ccc; font-size: 1.2rem; }
+        .bat-step:last-child::after { content: ""; }
+        .bat-icon { font-size: 2rem; display: block; margin-bottom: 5px; }
+        .bat-desc { font-size: 0.9rem; color: #555; }
+
         /* 復刻 Windows 警告樣式 */
         .win-alert { border: 1px solid #d9d9d9; background: white; margin: 15px 0; font-family: "Segoe UI", sans-serif; box-shadow: 0 2px 5px rgba(0,0,0,0.1); max-width: 500px; }
         .win-title { padding: 8px 12px; font-size: 12px; color: #000; }
@@ -93,10 +110,10 @@
 <body>
 
 <div class="navbar">
-    <div class="nav-title">📷 照片歸檔神器 <span style="font-size:0.8em; font-weight:normal;">v5.1</span></div>
+    <div class="nav-title">📷 照片歸檔神器 <span style="font-size:0.8em; font-weight:normal;">v5.2</span></div>
     <div style="display:flex; gap:15px; align-items:center;">
         <button class="tool-btn" onclick="rotateImage()" title="旋轉照片 (R)">⟳ 轉向 (R)</button>
-        <button class="btn-help" onclick="openHelpModal()">
+        <button class="btn-help" onclick="openHelpModal('tab1')">
             <span>❓ 教學</span>
         </button>
         <label for="folderInput" id="uploadBtn" class="btn-upload">
@@ -155,14 +172,15 @@
 
 <div id="helpModal" class="modal-overlay" onclick="closeHelpModal()">
     <div class="modal-content" onclick="event.stopPropagation()">
-        <div class="modal-header">
-            <h2 style="margin:0;">📖 操作說明書</h2>
-            <button style="border:none; background:none; font-size:24px; cursor:pointer;" onclick="closeHelpModal()">×</button>
+        <div class="modal-tabs">
+            <div class="tab-btn active" onclick="switchTab('tab1')" id="btn-tab1">📖 操作流程</div>
+            <div class="tab-btn" onclick="switchTab('tab2')" id="btn-tab2">🧪 .bat 執行檔原理</div>
+            <button class="modal-close-btn" onclick="closeHelpModal()">×</button>
         </div>
-        <div class="modal-body">
-            
+
+        <div id="tab1" class="modal-body active">
             <div class="help-section">
-                <div class="help-title">步驟一：基本操作流程</div>
+                <div class="help-title">快速上手</div>
                 <ul class="step-list">
                     <li><span class="step-num">1</span> 點擊右上角綠色按鈕 <b>「📂 選擇資料夾」</b> 載入照片。</li>
                     <li><span class="step-num">2</span> <b>左手</b> 操作鍵盤：按 <code>1~4</code> 選擇主分類，按 <code>A~D</code> 選擇子標籤。</li>
@@ -170,36 +188,67 @@
                     <li><span class="step-num">4</span> 遇到模糊/重複照片，按 <code>Delete</code> 直接丟入回收桶。</li>
                 </ul>
             </div>
-
             <div class="help-section">
-                <div class="help-title">步驟二：下載與執行 (重要！)</div>
-                <p>整理完成後，點擊下方橘色按鈕下載 <code>.bat</code> 檔，並將其<b>放入照片資料夾內執行</b>。</p>
-                
+                <div class="help-title">如何開始執行改名？</div>
+                <p>整理完成後，點擊橘色按鈕下載 <code>.bat</code> 檔，並將其<b>放入照片資料夾內執行</b>。</p>
                 <div style="background:#fff3cd; padding:15px; border-radius:8px; border:1px solid #ffeeba;">
-                    <strong style="color:#856404;">⚠️ 常見問題：無法開啟檔案？</strong>
-                    <p style="margin:5px 0 10px 0; font-size:14px;">如果您看到下方的 Windows 警告視窗，這是正常的資安保護機制。</p>
-                    
-                    <div class="win-alert">
-                        <div class="win-title">Windows 安全性</div>
-                        <div class="win-bar">
-                            <div class="win-icon">!</div>
-                            <div class="win-text">無法開啟這些檔案</div>
-                        </div>
-                        <div class="win-body">
-                            網際網路安全性設定導致無法開啟一或多個檔案。<br>
-                            <span style="background:#f0f0f0; font-family:monospace;">C:\Users\...\開始整理.bat</span>
-                        </div>
-                    </div>
-
-                    <p><b>✅ 解決方法：</b></p>
-                    <ol style="font-size:14px;">
+                    <strong style="color:#856404;">⚠️ 遇到 Windows 警告視窗？</strong>
+                    <p style="margin:5px 0 10px 0; font-size:14px;">請依照下方圖示解除鎖定：</p>
+                    <ol style="font-size:14px; margin:0; padding-left:20px;">
                         <li>對著 <code>.bat</code> 檔按 <b>滑鼠右鍵</b>。</li>
-                        <li>選擇 <b>「內容 (Properties)」</b>。</li>
+                        <li>選擇 <b>「內容」</b>。</li>
                         <li>勾選最下方的 <b>「解除鎖定 (Unblock)」</b>，然後按確定。</li>
                     </ol>
                 </div>
             </div>
+        </div>
 
+        <div id="tab2" class="modal-body">
+            <div class="help-section">
+                <div class="help-title">🤔 什麼是 .bat 執行檔？</div>
+                <p>它不是病毒，也不是軟體。它是一張由這個網頁產生出來的<b>「工作清單」</b>。</p>
+                <p>這個網頁本身<b>沒有權限</b>直接修改您的檔案，所以它把您的分類指令寫成一個 .bat 檔，請您下載回電腦後，由您親自執行它。</p>
+                
+                <div class="bat-diagram">
+                    <div class="bat-step">
+                        <span class="bat-icon">🏗️</span>
+                        <div class="bat-desc"><b>步驟一</b><br>自動建立分類資料夾<br>(如: 活動、會議)</div>
+                    </div>
+                    <div class="bat-step">
+                        <span class="bat-icon">🚚</span>
+                        <div class="bat-desc"><b>步驟二</b><br>將照片搬運並改名<br>移入對應資料夾</div>
+                    </div>
+                    <div class="bat-step">
+                        <span class="bat-icon">🗑️</span>
+                        <div class="bat-desc"><b>步驟三</b><br>廢片移至回收區<br>(_TRASH 資料夾)</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="help-section">
+                <div class="help-title">🛡️ 安全安心宣告</div>
+                <ul class="step-list">
+                    <li><span class="step-num">✓</span> <b>不刪除檔案</b>：被您按 Delete 的照片，只是被移到 <code>_TRASH</code> 資料夾，隨時可救回。</li>
+                    <li><span class="step-num">✓</span> <b>不需連網</b>：所有運算都在您的瀏覽器內完成，照片不會上傳到任何伺服器。</li>
+                    <li><span class="step-num">✓</span> <b>純文字格式</b>：您可以用記事本打開 .bat 檔，裡面全是你看得懂的文字 (move, rename)。</li>
+                </ul>
+            </div>
+
+             <div class="help-section">
+                <div class="help-title">為什麼會出現安全性警告？</div>
+                <div class="win-alert">
+                    <div class="win-title">Windows 安全性</div>
+                    <div class="win-bar">
+                        <div class="win-icon">!</div>
+                        <div class="win-text">無法開啟這些檔案</div>
+                    </div>
+                    <div class="win-body">
+                        網際網路安全性設定導致無法開啟一或多個檔案。<br>
+                        <span style="background:#f0f0f0; font-family:monospace;">C:\Users\...\開始整理.bat</span>
+                    </div>
+                </div>
+                <p style="font-size:14px; color:#666;">這是 Windows 的標準保護機制，因為這個檔案來自「網路下載」。只要依照第一頁的教學「解除鎖定」即可。</p>
+            </div>
         </div>
     </div>
 </div>
@@ -316,7 +365,6 @@
 
     // --- 鍵盤監聽 ---
     document.addEventListener('keydown', (e) => {
-        // Modal 開啟時不觸發
         if (UI.tourOverlay.style.display !== 'none' && !isDemoMode) return;
         if (UI.helpModal.style.display === 'flex') return;
 
@@ -355,7 +403,6 @@
     }
 
     function showStep(step) {
-        // 清除舊 Spotlight
         document.querySelectorAll('.spotlight').forEach(el => {
             el.classList.remove('spotlight');
             el.classList.remove('allow-click');
@@ -415,9 +462,18 @@
         document.getElementById('currentImage').src = "";
     }
 
-    // --- 教學 Modal ---
-    function openHelpModal() { UI.helpModal.style.display = 'flex'; }
+    // --- 教學 Modal (Tab切換) ---
+    function openHelpModal(tab = 'tab1') { 
+        UI.helpModal.style.display = 'flex';
+        switchTab(tab);
+    }
     function closeHelpModal() { UI.helpModal.style.display = 'none'; }
+    function switchTab(tabId) {
+        document.querySelectorAll('.modal-body').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+        document.getElementById(tabId).classList.add('active');
+        document.getElementById('btn-' + tabId).classList.add('active');
+    }
 
     // --- 真實檔案處理 ---
     document.getElementById('folderInput').addEventListener('change', function(e) {
@@ -444,13 +500,11 @@
     }
 
     function nextImage() {
-        // 強制檢查：未分類不能下一張 (除非刪除)
         if (!fileData[currentIndex].isDeleted && !fileData[currentIndex].category) {
             document.getElementById('catContainer').style.animation = "shake 0.3s";
             setTimeout(() => document.getElementById('catContainer').style.animation = "", 300);
             return;
         }
-
         if(currentIndex < files.length - 1) { currentIndex++; loadRealImage(); }
         else alert("🎉 全部完成！");
     }
@@ -459,7 +513,7 @@
         if(currentIndex > 0) { currentIndex--; loadRealImage(); }
     }
 
-    // --- 匯出 BAT (核心功能) ---
+    // --- 匯出 BAT (完整功能) ---
     function exportBat() {
         if(isDemoMode) { alert("請先選擇資料夾載入真實照片！"); return; }
         if(!files.length) return;
