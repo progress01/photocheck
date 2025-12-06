@@ -2,6 +2,7 @@
 
 為行政人員、活動紀錄整理設計的網頁工具。
 不需要安裝任何軟體，直接用瀏覽器打開即可使用。它可以幫助您快速檢視大量照片，並透過鍵盤操作完成分類與命名，最後自動產生整理腳本。
+https://progress01.github.io/photocheck/
 
 ![License](https://img.shields.io/badge/License-MIT-blue.svg)
 ![Platform](https://img.shields.io/badge/Platform-Browser-green.svg)
