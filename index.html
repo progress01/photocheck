@@ -3,24 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>照片歸檔神器 v6.0 (全能整合版)</title>
+    <title>照片歸檔神器 v6.0 (最終修正版)</title>
     <style>
         :root { --primary: #0d6efd; --purple: #6610f2; --success: #198754; --warning: #ffc107; --danger: #dc3545; --bg: #f8f9fa; --overlay-bg: rgba(0,0,0,0.85); }
         body { font-family: "Microsoft JhengHei", "Segoe UI", sans-serif; margin: 0; padding: 20px; background: var(--bg); color: #333; height: 100vh; box-sizing: border-box; display: flex; flex-direction: column; overflow: hidden; }
         
         /* 導航列 */
-        .navbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; background: white; padding: 10px 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); z-index: 5; }
+        .navbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; background: white; padding: 10px 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); z-index: 50; }
         .nav-title { margin: 0; font-size: 1.2rem; font-weight: bold; }
 
         .main-layout { display: grid; grid-template-columns: 1fr 420px; gap: 20px; flex: 1; min-height: 0; position: relative; }
         
         /* 圖片區 */
         .image-panel { background: #222; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        .image-panel img { max-width: 100%; max-height: 100%; object-fit: contain; transition: transform 0.3s ease; }
+        .image-panel img { max-width: 100%; max-height: 100%; object-fit: contain; transition: transform 0.3s ease; display: none; } /* 預設隱藏 img */
+        
+        /* 預設顯示的佔位文字 (解決圖片破圖問題) */
+        .placeholder-content { text-align: center; color: #888; }
+        .placeholder-icon { font-size: 4rem; margin-bottom: 20px; opacity: 0.5; }
+        
+        /* 狀態遮罩 */
         .status-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: none; justify-content: center; align-items: center; color: #ff6b6b; font-size: 4rem; font-weight: bold; z-index: 10; flex-direction: column; pointer-events: none; }
         
         /* 側邊欄 */
-        .sidebar { background: white; border-radius: 8px; padding: 20px; display: flex; flex-direction: column; gap: 15px; overflow-y: auto; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        .sidebar { background: white; border-radius: 8px; padding: 20px; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
         .section-header { border-bottom: 2px solid #eee; padding-bottom: 5px; margin-bottom: 8px; font-weight: bold; color: #555; font-size: 0.95rem; display: flex; justify-content: space-between; align-items: center; }
         
         /* 工具列 */
@@ -63,10 +69,11 @@
         .btn-download.active { cursor: pointer; opacity: 1; }
         .btn-download.active:hover { background: #e96b02; }
 
-        /* 教學相關 */
+        /* 上方按鈕 */
         .btn-help { background: var(--purple); color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px; }
-        .btn-upload { background: var(--success); color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 15px; opacity: 0.5; pointer-events: none; }
-        .btn-upload.active { opacity: 1; pointer-events: auto; }
+        /* 修正：移除 pointer-events: none，改用 JS 控制行為 */
+        .btn-upload { background: var(--success); color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 15px; }
+        .btn-upload:hover { background: #157347; }
 
         /* 歡迎與導覽 */
         .tour-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--overlay-bg); z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; color: white; }
@@ -110,25 +117,32 @@
 <body>
 
 <div class="navbar">
-    <div class="nav-title">📷 照片歸檔神器 <span style="font-size:0.8em; font-weight:normal;">v6.0 全能版</span></div>
+    <div class="nav-title">📷 照片歸檔神器 <span style="font-size:0.8em; font-weight:normal;">v6.0</span></div>
     <div style="display:flex; gap:10px; align-items:center;">
-        <button class="btn-help" onclick="openHelpModal('tab1')">❓ 教學與原理</button>
-        <label for="folderInput" id="uploadBtn" class="btn-upload"><span>📂 選擇資料夾</span></label>
+        <button class="tool-btn" onclick="rotateImage()">⟳ 轉向 (R)</button>
+        <button class="btn-help" onclick="openHelpModal('tab1')">❓ 教學</button>
+        <label for="folderInput" id="uploadBtn" class="btn-upload" onclick="return checkUpload()"><span>📂 選擇資料夾</span></label>
         <input type="file" id="folderInput" webkitdirectory directory multiple style="display:none;">
     </div>
 </div>
 
 <div class="main-layout">
     <div class="image-panel" id="imgPanel">
-        <img id="currentImage" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4MDAiIGhlaWdodD0iNjAwIiB2aWV3Qm94PSIwIDAgODAwIDYwMCI+CiAgPHJlY3Qgd2lkdGg9IjgwMCIgaGVpZ2h0PSI2MDAiIGZpbGw9IiMzMzMiIC8+CiAgPHRleHQgeD0iNTA1IiB5PSI1MCUiIGRvbWluYW50LWJhc2VsaW5lPSJtaWRkbGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4ODgiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0Ij7lronlhajltoPpoIzjgIjmsqHmnInmhuHmoYjvvIk8L3RleHQ+Cjwvc3ZnPg==" alt="Demo">
+        <img id="currentImage" src="" alt="">
+        
+        <div id="placeholder" class="placeholder-content">
+            <div class="placeholder-icon">📷</div>
+            <h3>等待載入照片</h3>
+            <p>請點擊右上角「選擇資料夾」開始</p>
+        </div>
+
         <div class="status-overlay" id="trashOverlay"><div>🗑️</div><div style="font-size:1.5rem; color:white;">已丟入回收桶</div></div>
     </div>
 
     <div class="sidebar" id="sidebar">
         <div class="toolbar">
-            <button class="tool-btn" onclick="openSettings()">⚙️ 設定</button>
+            <button class="tool-btn" onclick="openSettings()">⚙️ 設定分類</button>
             <button class="tool-btn" id="lockBtn" onclick="toggleLock()">🔓 鎖定分類</button>
-            <button class="tool-btn" onclick="rotateImage()">⟳ 轉向 (R)</button>
         </div>
 
         <div id="catSection">
@@ -259,6 +273,7 @@
     // --- DOM ---
     const UI = {
         img: document.getElementById('currentImage'),
+        placeholder: document.getElementById('placeholder'),
         catContainer: document.getElementById('catContainer'),
         tagContainer: document.getElementById('tagContainer'),
         preview: document.getElementById('finalPreview'),
@@ -305,11 +320,24 @@
         });
     }
 
+    // --- 上傳檢查 (解決按鈕卡死問題) ---
+    function checkUpload() {
+        if (isTourActive) { alert("請先完成或跳過新手導引！"); return false; }
+        if (isDemoMode) {
+            if(confirm("即將離開教學模式，並載入真實照片。確定嗎？")) {
+                endDemoMode();
+                return true; // 允許開啟檔案選擇器
+            }
+            return false;
+        }
+        return true;
+    }
+
     // --- 核心邏輯 ---
     function getData() { return isDemoMode ? demoData : fileData[currentIndex]; }
 
     function selectCategory(name) {
-        if (isTourActive && tourStep === 1 && name !== '活動') return; // Tour guard
+        if (isTourActive && tourStep === 1 && name !== '活動') return; 
         let data = getData();
         if(data.isDeleted) { data.isDeleted = false; }
         data.category = name;
@@ -345,7 +373,7 @@
     }
 
     function validateInput(input) {
-        let val = input.value.replace(/[\\/:*?"<>|]/g, ''); // 移除 Windows 非法字元
+        let val = input.value.replace(/[\\/:*?"<>|]/g, ''); 
         input.value = val;
         let data = getData();
         data.customName = val;
@@ -355,27 +383,27 @@
     function updateUI() {
         let data = getData();
         
-        // 刪除遮罩
         UI.trashOverlay.style.display = data.isDeleted ? 'flex' : 'none';
         
-        // 按鈕狀態
         document.querySelectorAll('.cat-btn').forEach(b => b.classList.toggle('active', !data.isDeleted && b.dataset.val === data.category));
         document.querySelectorAll('.tag-btn').forEach(b => b.classList.toggle('active', data.tags.has(b.dataset.val)));
 
-        // 命名控制項狀態回填
-        // 注意：如果是 Demo 模式，只用簡單邏輯；如果是真實模式，要讀取 data.isAuto
-        if (!isDemoMode) {
-            UI.autoSeqCheck.checked = (data.isAuto !== false); // 預設 true
+        // 命名狀態回填
+        if (!isDemoMode && files.length > 0) {
+            UI.autoSeqCheck.checked = (data.isAuto !== false); 
             UI.customInput.value = data.customName || "";
         }
-        // 控制輸入框啟用/禁用
+        
         UI.customInput.disabled = UI.autoSeqCheck.checked;
-        if (!UI.autoSeqCheck.checked) { 
-            // 存回 data
-            data.isAuto = false;
-            data.customName = UI.customInput.value;
-        } else {
-            data.isAuto = true;
+        
+        // 只有在非教學且有檔案時才寫入資料，避免 Demo 模式報錯
+        if (!isDemoMode && files.length > 0) {
+            if (!UI.autoSeqCheck.checked) { 
+                data.isAuto = false;
+                data.customName = UI.customInput.value;
+            } else {
+                data.isAuto = true;
+            }
         }
 
         // 預覽文字
@@ -389,20 +417,20 @@
             let parts = [data.category];
             tags.forEach(t => { if(data.tags.has(t.name)) parts.push(t.name); });
             
-            // 檔名邏輯
             let fileName = "";
-            if (data.isAuto !== false) { // Auto Seq
+            if (data.isAuto !== false) { 
                 fileName = `${parts.join('_')}_001.jpg`;
-            } else { // Custom
+            } else { 
                 let customPart = data.customName || "名稱";
                 fileName = `${parts.join('_')}_${customPart}.jpg`;
             }
+            // Demo 模式不顯示副檔名或路徑細節
+            let ext = (!isDemoMode && files.length > 0) ? files[currentIndex].name.split('.').pop() : "jpg";
             UI.preview.textContent = `存檔為: ${data.category}\\${fileName}`;
             UI.preview.style.color = "#333";
         }
     }
     
-    // UI觸發的 updatePreview (給 checkbox 用)
     function updatePreview() { updateUI(); }
 
     // --- 鍵盤監聽 ---
@@ -424,7 +452,6 @@
             const act = keyMap[key];
             if (act.type === 'cat') selectCategory(act.val);
             if (act.type === 'tag') toggleTag(act.val);
-            // Visual feedback
             const btn = document.getElementById(`${act.type}_${key.toUpperCase()}`);
             if(btn) { btn.style.transform = "scale(0.95)"; setTimeout(()=>btn.style.transform="scale(1)", 100); }
         }
@@ -436,6 +463,11 @@
         UI.welcomeOverlay.style.display = 'none';
         isTourActive = true;
         document.body.classList.add('tour-active');
+        // 在教學模式下，我們需要強制顯示一張圖片
+        UI.img.style.display = 'block';
+        UI.img.src = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4MDAiIGhlaWdodD0iNjAwIiB2aWV3Qm94PSIwIDAgODAwIDYwMCI+CiAgPHJlY3Qgd2lkdGg9IjgwMCIgaGVpZ2h0PSI2MDAiIGZpbGw9IiMzMzMiIC8+CiAgPHRleHQgeD0iNTA1IiB5PSI1MCUiIGRvbWluYW50LWJhc2VsaW5lPSJtaWRkbGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4ODgiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0Ij7lronlhajltoPpoIzjgIjmsqHmnInmhuHmoYjvvIk8L3RleHQ+Cjwvc3ZnPg==";
+        UI.placeholder.style.display = 'none';
+        
         UI.dimmer.style.display = 'block';
         tourStep = 1; showTourStep(1);
     }
@@ -472,23 +504,34 @@
         isDemoMode = false;
         demoData = { category: null, tags: new Set(), isDeleted: false };
         updateUI();
-        UI.uploadBtn.classList.add('active'); 
+        
+        // 重置為初始狀態：隱藏 img, 顯示 placeholder
+        UI.img.src = "";
+        UI.img.style.display = 'none';
+        UI.placeholder.style.display = 'block';
         UI.downloadBtn.classList.add('active'); 
-        document.getElementById('currentImage').src = "";
     }
 
     // --- 真實檔案 ---
     document.getElementById('folderInput').addEventListener('change', function(e) {
-        if(isDemoMode) return;
+        // 不需要再檢查 isDemoMode，因為 click 時已經檢查過了
         files = Array.from(e.target.files).filter(f => f.type.startsWith('image/'));
         if (!files.length) { alert("沒有圖片！"); return; }
-        // Init real data
+        
         fileData = files.map(f => ({ originalName: f.name, category: null, tags: new Set(), isDeleted: false, isAuto: true, customName: "" }));
         const collator = new Intl.Collator(undefined, {numeric: true, sensitivity: 'base'});
         files.sort((a, b) => collator.compare(a.name, b.name));
         fileData.sort((a, b) => collator.compare(a.originalName, b.originalName));
-        currentIndex = 0; loadRealImage();
+        
+        currentIndex = 0; 
+        
+        // 隱藏 placeholder, 顯示 img
+        UI.placeholder.style.display = 'none';
+        UI.img.style.display = 'block';
+        
+        loadRealImage();
     });
+    
     function loadRealImage() {
         if (!files.length) return;
         const img = document.getElementById('currentImage');
@@ -498,12 +541,11 @@
         updateUI();
     }
     function nextImage() {
-        // 鎖定邏輯
         if(currentIndex < files.length - 1) {
             let prevCat = fileData[currentIndex].category;
             currentIndex++;
             if(isLocked && prevCat && !fileData[currentIndex].category) {
-                fileData[currentIndex].category = prevCat; // Apply Lock
+                fileData[currentIndex].category = prevCat; 
             }
             loadRealImage();
         } else alert("🎉 全部完成！");
@@ -519,7 +561,6 @@
         document.getElementById(t).classList.add('active'); document.getElementById('btn-'+t).classList.add('active');
     }
     function openSettings() {
-        // Render settings table
         const cBody = document.getElementById('catSettingsBody'); cBody.innerHTML = '';
         categories.forEach((c,i) => cBody.innerHTML += `<tr><td><input class="settings-input" value="${c.name}" onchange="categories[${i}].name=this.value"></td><td><input class="settings-input key-input" value="${c.key}" onchange="categories[${i}].key=this.value" maxlength="1"></td><td onclick="categories.splice(${i},1);openSettings()" style="color:red;cursor:pointer">✖</td></tr>`);
         const tBody = document.getElementById('tagSettingsBody'); tBody.innerHTML = '';
@@ -528,9 +569,9 @@
     }
     function closeSettings() { UI.settingsModal.style.display = 'none'; }
     function saveSettings() {
-        initUI(); // Re-render buttons
+        initUI(); 
         closeSettings();
-        updateUI(); // Refresh view
+        updateUI(); 
     }
     function addCatRow() { categories.push({name:"", key:""}); openSettings(); }
     function addTagRow() { tags.push({name:"", key:""}); openSettings(); }
@@ -551,7 +592,6 @@
             if(d.isDeleted) { bat += `move "${d.originalName}" "_TRASH\\${d.originalName}"\r\n`; return; }
             if(!d.category) return;
             
-            // 流水號計算：同分類共用
             if(!counts[d.category]) counts[d.category]=0;
             counts[d.category]++;
             let seq = String(counts[d.category]).padStart(3,'0');
@@ -562,9 +602,9 @@
             let ext = d.originalName.split('.').pop();
             let finalName = "";
             
-            if(d.isAuto !== false) { // Auto
+            if(d.isAuto !== false) { 
                 finalName = `${parts.join('_')}_${seq}.${ext}`;
-            } else { // Custom
+            } else { 
                 let cust = d.customName || "名稱";
                 finalName = `${parts.join('_')}_${cust}.${ext}`;
             }
