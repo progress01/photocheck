@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>照片歸檔神器 v7.2 (完整修復版)</title>
+    <title>照片歸檔神器 v7.3 (流水號即時預覽版)</title>
     <style>
         :root { --primary: #0d6efd; --purple: #6610f2; --success: #198754; --warning: #ffc107; --danger: #dc3545; --bg: #f8f9fa; --overlay-bg: rgba(0,0,0,0.85); }
         body { font-family: "Microsoft JhengHei", "Segoe UI", sans-serif; margin: 0; padding: 20px; background: var(--bg); color: #333; height: 100vh; box-sizing: border-box; display: flex; flex-direction: column; overflow: hidden; }
@@ -127,7 +127,7 @@
 <body>
 
 <div class="navbar">
-    <div class="nav-title">📷 照片歸檔神器 <span style="font-size:0.8em; font-weight:normal;">v7.2</span></div>
+    <div class="nav-title">📷 照片歸檔神器 <span style="font-size:0.8em; font-weight:normal;">v7.3</span></div>
     <div style="display:flex; gap:10px; align-items:center;">
         <button class="tool-btn" onclick="rotateImage()">⟳ 轉向 (R)</button>
         <button class="btn-help" onclick="openHelpModal('tab1')">❓ 教學</button>
@@ -434,7 +434,19 @@
             
             let fileName = "";
             if (data.isAuto !== false) { 
-                fileName = `${parts.join('_')}_001.jpg`;
+                // --- 修正: 即時計算流水號 ---
+                let seqNum = 1;
+                if(!isDemoMode && data.category) {
+                    seqNum = 0;
+                    // 從 0 到 currentIndex，計算同分類且未刪除的數量
+                    for(let i=0; i<=currentIndex; i++) {
+                        if(fileData[i].category === data.category && !fileData[i].isDeleted) {
+                            seqNum++;
+                        }
+                    }
+                    if(seqNum === 0) seqNum = 1; // 防呆
+                }
+                fileName = `${parts.join('_')}_${String(seqNum).padStart(3,'0')}.jpg`;
             } else { 
                 let customPart = data.customName || "名稱";
                 fileName = `${parts.join('_')}_${customPart}.jpg`;
@@ -477,7 +489,6 @@
         UI.welcomeOverlay.style.display = 'none';
         isTourActive = true;
         document.body.classList.add('tour-active');
-        // 教學模式使用繁體中文 SVG
         UI.img.src = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4MDAiIGhlaWdodD0iNjAwIiB2aWV3Qm94PSIwIDAgODAwIDYwMCI+CiAgPHJlY3Qgd2lkdGg9IjgwMCIgaGVpZ2h0PSI2MDAiIGZpbGw9IiMzMzMiIC8+CiAgPHRleHQgeD0iNTA1IiB5PSI1MCUiIGRvbWluYW50LWJhc2VsaW5lPSJtaWRkbGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4ODgiIGZvbnQtZmFtaWx5PSJNaWNyb3NvZnQgSmhlbmdIZWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjQiPuabt+WbuuWcqOatpCAo6KKu5pSl6Yg45pW06auU54mHKTwvdGV4dD4KPC9zdmc+";
         UI.placeholder.style.display = 'none';
         UI.img.style.display = 'block';
