@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>照片歸檔神器 v7.0 (修正版)</title>
+    <title>照片歸檔神器 v7.2 (完整修復版)</title>
     <style>
         :root { --primary: #0d6efd; --purple: #6610f2; --success: #198754; --warning: #ffc107; --danger: #dc3545; --bg: #f8f9fa; --overlay-bg: rgba(0,0,0,0.85); }
         body { font-family: "Microsoft JhengHei", "Segoe UI", sans-serif; margin: 0; padding: 20px; background: var(--bg); color: #333; height: 100vh; box-sizing: border-box; display: flex; flex-direction: column; overflow: hidden; }
@@ -16,7 +16,11 @@
         
         /* 圖片區 */
         .image-panel { background: #222; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        .image-panel img { max-width: 100%; max-height: 100%; object-fit: contain; transition: transform 0.3s ease; } 
+        .image-panel img { max-width: 100%; max-height: 100%; object-fit: contain; transition: transform 0.3s ease; display: none; }
+        
+        /* 預設佔位畫面 */
+        .placeholder-content { text-align: center; color: #666; }
+        .placeholder-icon { font-size: 5rem; margin-bottom: 10px; opacity: 0.3; }
         
         /* 狀態遮罩 */
         .status-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: none; justify-content: center; align-items: center; color: #ff6b6b; font-size: 4rem; font-weight: bold; z-index: 10; flex-direction: column; pointer-events: none; }
@@ -39,12 +43,12 @@
             display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 45px; user-select: none;
         }
         .cat-btn:hover, .tag-btn:hover { background: #f8f9fa; border-color: #999; }
-        .cat-btn.active { background: var(--primary); color: white; border-color: var(--primary); font-weight: bold; transform: scale(0.98); }
-        .tag-btn.active { background: var(--purple); color: white; border-color: var(--purple); font-weight: bold; transform: scale(0.98); }
+        .cat-btn.active { background: var(--primary); color: white; border-color: var(--primary); font-weight: bold; transform: scale(0.98); box-shadow: 0 2px 5px rgba(13, 110, 253, 0.3); }
+        .tag-btn.active { background: var(--purple); color: white; border-color: var(--purple); font-weight: bold; transform: scale(0.98); box-shadow: 0 2px 5px rgba(102, 16, 242, 0.3); }
         .key-badge { position: absolute; top: 2px; right: 2px; background: #333; color: white; font-size: 10px; padding: 2px 5px; border-radius: 4px; opacity: 0.8; font-family: monospace; }
         .cat-btn.active .key-badge, .tag-btn.active .key-badge { background: white; color: #333; }
 
-        /* 命名控制區 (重點修復) */
+        /* 命名控制區 */
         .naming-control { border: 2px solid #eee; padding: 15px; border-radius: 8px; background: #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.02); }
         .toggle-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; cursor: pointer; user-select: none; }
         
@@ -61,16 +65,25 @@
         .custom-input:disabled { background: #e9ecef; color: #aaa; cursor: not-allowed; border-color: #eee; }
         .custom-input:focus { border-color: var(--primary); outline: none; }
 
-        /* 預覽與下載 */
+        /* 預覽與導航區 */
         .preview-box { background: #e9ecef; padding: 12px; border-radius: 6px; text-align: right; font-family: monospace; font-size: 0.95rem; color: #555; margin-top: auto; border: 1px solid #dee2e6; }
-        .btn-download { background: #fd7e14; color: white; width: 100%; padding: 15px; font-size: 16px; margin-top: 10px; border: none; border-radius: 6px; cursor: not-allowed; font-weight: bold; opacity: 0.5; transition:0.3s; }
-        .btn-download.active { cursor: pointer; opacity: 1; }
-        .btn-download.active:hover { background: #e96b02; }
+        
+        /* 導航按鈕 (恢復) */
+        .nav-btn-group { display: flex; gap: 10px; margin-top: 10px; }
+        .nav-btn { flex: 1; padding: 12px; font-size: 15px; border: 1px solid #ccc; background: white; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.2s; }
+        .nav-btn:hover { background: #f0f0f0; }
+        .nav-btn-primary { flex: 1.5; background: var(--primary); color: white; border: none; }
+        .nav-btn-primary:hover { background: #0b5ed7; }
+
+        /* 下載按鈕 */
+        .btn-download { background: #fd7e14; color: white; width: 100%; padding: 15px; font-size: 16px; margin-top: 10px; border: none; border-radius: 6px; cursor: not-allowed; font-weight: bold; opacity: 0.5; transition:0.3s; pointer-events: none; }
+        .btn-download.active { cursor: pointer; opacity: 1; pointer-events: auto; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .btn-download.active:hover { background: #e96b02; transform: translateY(-2px); }
 
         /* 上方按鈕 */
         .btn-help { background: var(--purple); color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px; }
-        .btn-upload { background: var(--success); color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 15px; }
-        .btn-upload:hover { background: #157347; }
+        .btn-upload { background: var(--success); color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 15px; transition:0.2s; }
+        .btn-upload:hover { background: #157347; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
 
         /* 歡迎與導覽 */
         .tour-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--overlay-bg); z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; color: white; }
@@ -114,7 +127,7 @@
 <body>
 
 <div class="navbar">
-    <div class="nav-title">📷 照片歸檔神器 <span style="font-size:0.8em; font-weight:normal;">v7.0</span></div>
+    <div class="nav-title">📷 照片歸檔神器 <span style="font-size:0.8em; font-weight:normal;">v7.2</span></div>
     <div style="display:flex; gap:10px; align-items:center;">
         <button class="tool-btn" onclick="rotateImage()">⟳ 轉向 (R)</button>
         <button class="btn-help" onclick="openHelpModal('tab1')">❓ 教學</button>
@@ -125,8 +138,12 @@
 
 <div class="main-layout">
     <div class="image-panel" id="imgPanel">
-        <img id="currentImage" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4MDAiIGhlaWdodD0iNjAwIiB2aWV3Qm94PSIwIDAgODAwIDYwMCI+CiAgPHJlY3Qgd2lkdGg9IjgwMCIgaGVpZ2h0PSI2MDAiIGZpbGw9IiMzMzMiIC8+CiAgPHRleHQgeD0iNTA1IiB5PSI1MCUiIGRvbWluYW50LWJhc2VsaW5lPSJtaWRkbGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4ODgiIGZvbnQtZmFtaWx5PSJNaWNyb3NvZnQgSmhlbmdIZWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjQiPuabt+WbuuWcqOatpCAo6KKu5pSl6Yg45pW06auU54mHKTwvdGV4dD4KPC9zdmc+" alt="Placeholder">
-        
+        <img id="currentImage" src="" alt="">
+        <div id="placeholder" class="placeholder-content">
+            <div class="placeholder-icon">📂</div>
+            <h3>等待載入照片</h3>
+            <p>請點擊右上角「選擇資料夾」開始</p>
+        </div>
         <div class="status-overlay" id="trashOverlay"><div>🗑️</div><div style="font-size:1.5rem; color:white;">已丟入回收桶</div></div>
     </div>
 
@@ -162,6 +179,12 @@
 
         <div style="margin-top:auto;">
             <div class="preview-box" id="finalPreview">等待操作...</div>
+            
+            <div class="nav-btn-group">
+                <button class="nav-btn" onclick="prevImage()">← 上一張</button>
+                <button class="nav-btn nav-btn-primary" onclick="nextImage()">下一張 (Enter)</button>
+            </div>
+
             <button id="downloadBtn" class="btn-download" onclick="exportBat()">⚡ 下載整理執行檔 (.bat)</button>
         </div>
     </div>
@@ -247,18 +270,9 @@
 </div>
 
 <script>
-    // --- 核心資料 (預設使用範例引導) ---
-    let categories = [ 
-        { name: "範例分類A", key: "1" }, 
-        { name: "範例分類B", key: "2" }, 
-        { name: "範例分類C", key: "3" }, 
-        { name: "其他", key: "4" } 
-    ];
-    let tags = [ 
-        { name: "範例後綴1", key: "A" }, 
-        { name: "範例後綴2", key: "S" }, 
-        { name: "範例後綴3", key: "D" } 
-    ];
+    // --- 核心資料 ---
+    let categories = [ { name: "範例分類A", key: "1" }, { name: "範例分類B", key: "2" }, { name: "範例分類C", key: "3" }, { name: "其他", key: "4" } ];
+    let tags = [ { name: "範例後綴1", key: "A" }, { name: "範例後綴2", key: "S" }, { name: "範例後綴3", key: "D" } ];
     
     let isDemoMode = true; 
     let isTourActive = false;
@@ -273,6 +287,7 @@
     // --- DOM ---
     const UI = {
         img: document.getElementById('currentImage'),
+        placeholder: document.getElementById('placeholder'),
         catContainer: document.getElementById('catContainer'),
         tagContainer: document.getElementById('tagContainer'),
         preview: document.getElementById('finalPreview'),
@@ -298,7 +313,7 @@
         categories.forEach(c => {
             const btn = document.createElement('div');
             btn.className = 'cat-btn';
-            btn.id = `cat_${c.key}`; // For tour
+            btn.id = `cat_${c.key}`; 
             btn.dataset.val = c.name;
             btn.innerHTML = `${c.name} ${c.key?`<span class="key-badge">${c.key}</span>`:''}`;
             btn.onclick = () => selectCategory(c.name);
@@ -371,7 +386,7 @@
         UI.img.style.transform = `rotate(${rotationDeg}deg)`;
     }
 
-    // --- 命名控制邏輯修復 ---
+    // --- 命名控制邏輯 ---
     function toggleNamingMode() {
         let data = getData();
         data.isAuto = UI.autoSeqCheck.checked;
@@ -401,7 +416,7 @@
         document.querySelectorAll('.cat-btn').forEach(b => b.classList.toggle('active', !data.isDeleted && b.dataset.val === data.category));
         document.querySelectorAll('.tag-btn').forEach(b => b.classList.toggle('active', data.tags.has(b.dataset.val)));
 
-        // 命名狀態回填 (修復的核心)
+        // 命名狀態回填
         UI.autoSeqCheck.checked = (data.isAuto !== false); 
         UI.customInput.value = data.customName || "";
         UI.customInput.disabled = UI.autoSeqCheck.checked;
@@ -429,7 +444,7 @@
         }
     }
     
-    function updatePreview() { updateUI(); } // Alias for cleaner HTML call
+    function updatePreview() { updateUI(); } 
 
     // --- 鍵盤監聽 ---
     document.addEventListener('keydown', (e) => {
@@ -464,6 +479,8 @@
         document.body.classList.add('tour-active');
         // 教學模式使用繁體中文 SVG
         UI.img.src = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4MDAiIGhlaWdodD0iNjAwIiB2aWV3Qm94PSIwIDAgODAwIDYwMCI+CiAgPHJlY3Qgd2lkdGg9IjgwMCIgaGVpZ2h0PSI2MDAiIGZpbGw9IiMzMzMiIC8+CiAgPHRleHQgeD0iNTA1IiB5PSI1MCUiIGRvbWluYW50LWJhc2VsaW5lPSJtaWRkbGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4ODgiIGZvbnQtZmFtaWx5PSJNaWNyb3NvZnQgSmhlbmdIZWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjQiPuabt+WbuuWcqOatpCAo6KKu5pSl6Yg45pW06auU54mHKTwvdGV4dD4KPC9zdmc+";
+        UI.placeholder.style.display = 'none';
+        UI.img.style.display = 'block';
         
         UI.dimmer.style.display = 'block';
         tourStep = 1; showTourStep(1);
@@ -473,7 +490,6 @@
         const tooltip = UI.tourTooltip;
         tooltip.style.display = 'block';
         
-        // 使用 categories[0] 的 key 來定位，避免寫死
         if(step===1) { setupTip(1, "選擇主分類", `請按鍵盤 '${categories[0].key}' 選擇 ${categories[0].name}`, `cat_${categories[0].key}`, 'right'); }
         else if(step===2) { setupTip(2, "加上子標籤", `請按鍵盤 '${tags[0].key}' 加上 ${tags[0].name}`, `tag_${tags[0].key}`, 'right'); }
         else if(step===3) { setupTip(3, "刪除廢片", "按 'Delete' 鍵丟棄照片", 'imgPanel', 'center'); }
@@ -501,23 +517,33 @@
         isDemoMode = false;
         demoData = { category: null, tags: new Set(), isDeleted: false, isAuto: true };
         updateUI();
-        UI.uploadBtn.classList.add('active'); 
-        UI.downloadBtn.classList.add('active'); 
+        
         UI.img.src = "";
+        UI.img.style.display = 'none';
+        UI.placeholder.style.display = 'block';
     }
 
     // --- 真實檔案 ---
     document.getElementById('folderInput').addEventListener('change', function(e) {
-        if(isDemoMode) return;
         files = Array.from(e.target.files).filter(f => f.type.startsWith('image/'));
         if (!files.length) { alert("沒有圖片！"); return; }
-        // 初始化真實資料
+        
         fileData = files.map(f => ({ originalName: f.name, category: null, tags: new Set(), isDeleted: false, isAuto: true, customName: "" }));
         const collator = new Intl.Collator(undefined, {numeric: true, sensitivity: 'base'});
         files.sort((a, b) => collator.compare(a.name, b.name));
         fileData.sort((a, b) => collator.compare(a.originalName, b.originalName));
-        currentIndex = 0; loadRealImage();
+        
+        currentIndex = 0; 
+        
+        // 激活下載按鈕
+        UI.downloadBtn.classList.add('active'); 
+        
+        UI.placeholder.style.display = 'none';
+        UI.img.style.display = 'block';
+        
+        loadRealImage();
     });
+    
     function loadRealImage() {
         if (!files.length) return;
         const img = document.getElementById('currentImage');
