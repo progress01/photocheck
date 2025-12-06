@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>照片標註小工具 (自訂標籤版)</title>
+    <title>照片標註與批次改名產生器</title>
     <style>
         body { font-family: "Microsoft JhengHei", "Segoe UI", sans-serif; padding: 20px; background: #f0f2f5; color: #333; }
         .container { max-width: 1000px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
@@ -43,8 +43,13 @@
         .btn-secondary { background: #6c757d; color: white; }
         .btn-secondary:hover { background: #5a6268; }
         .btn-clear { background: #dc3545; color: white; padding: 5px 10px; font-size: 12px; margin-left: auto; display: block; width: fit-content; margin-bottom: 5px;}
-        .btn-success { background: #28a745; color: white; width: 100%; padding: 15px; font-size: 18px; margin-top: 10px; }
-        .btn-success:hover { background: #218838; }
+        
+        /* 下載按鈕區 */
+        .download-area { margin-top: 15px; padding-top: 15px; border-top: 1px solid #eee; display: flex; flex-direction: column; gap: 10px; }
+        .btn-bat { background: #fd7e14; color: white; width: 100%; padding: 15px; font-size: 18px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .btn-bat:hover { background: #e96b02; transform: translateY(-1px); }
+        .btn-csv { background: #28a745; color: white; font-size: 14px; padding: 10px; opacity: 0.9; }
+        .btn-csv:hover { background: #218838; }
 
         .upload-btn { background: #17a2b8; color: white; padding: 10px 20px; border-radius: 6px; cursor: pointer; display: inline-block; font-weight: bold; }
         .upload-btn:hover { background: #138496; }
@@ -72,12 +77,12 @@
                 </textarea>
                 <div class="config-help">
                     <strong>如何設定：</strong><br>
-                    請在左側輸入您想要的對應，格式為「中文,英文」，一行一個。<br>
-                    例如：<br>
-                    <code>會議記錄,Meeting</code><br>
-                    <code>戶外教學,Outdoor</code><br>
+                    請在左側輸入「中文,英文」，一行一個。<br>
+                    輸入後，下方會自動產生按鈕。<br>
                     <br>
-                    輸入後，下方會自動產生按鈕。
+                    <strong>最後步驟：</strong><br>
+                    做完標註後，點擊橘色按鈕下載 <code>.bat</code> 檔，<br>
+                    放在照片資料夾內點兩下即可自動改名。
                 </div>
             </div>
         </details>
@@ -115,8 +120,10 @@
                 <button class="btn-primary" onclick="nextImage()">下一張 / 儲存 (Enter)</button>
             </div>
             
-            <hr style="width:100%; border:0; border-top:1px solid #eee; margin: 20px 0;">
-            <button class="btn-success" onclick="exportCSV()">📥 下載 CSV 改名清單</button>
+            <div class="download-area">
+                <button class="btn-bat" onclick="exportBAT()">⚡ 下載自動改名執行檔 (.bat)</button>
+                <button class="btn-csv" onclick="exportCSV()">📥 僅下載 CSV 紀錄檔 (Excel用)</button>
+            </div>
         </div>
     </div>
 </div>
@@ -135,22 +142,18 @@
     const tagConfig = document.getElementById('tagConfig');
     const quickTagsContainer = document.getElementById('quickTags');
 
-    // 初始化：產生預設標籤按鈕
     renderQuickTags();
 
-    // 1. 產生快速標籤按鈕邏輯
     function renderQuickTags() {
         quickTagsContainer.innerHTML = '';
         const configText = tagConfig.value.trim();
         const lines = configText.split('\n');
 
         lines.forEach(line => {
-            // 簡單處理逗號分隔，並移除多餘空白
-            const parts = line.split(/[,，]/); // 支援全形和半形逗號
+            const parts = line.split(/[,，]/);
             if (parts.length >= 2) {
                 const label = parts[0].trim();
                 const code = parts[1].trim();
-
                 if (label && code) {
                     const btn = document.createElement('button');
                     btn.className = 'tag-btn';
@@ -162,14 +165,11 @@
         });
     }
 
-    // 2. 點擊按鈕加入標籤
     function addTag(code) {
         const currentVal = tagInput.value.trim();
         if (currentVal === "") {
             tagInput.value = code;
         } else {
-            // 如果已經有內容，用底線連接 (例如: Meeting_2023)
-            // 防止重複加入一樣的尾綴
             if (!currentVal.endsWith(code)) {
                 tagInput.value = currentVal + "_" + code;
             }
@@ -182,7 +182,6 @@
         tagInput.focus();
     }
 
-    // 3. 讀取資料夾
     folderInput.addEventListener('change', function(e) {
         const allFiles = Array.from(e.target.files);
         files = allFiles.filter(f => f.type.startsWith('image/'));
@@ -192,13 +191,11 @@
             return;
         }
 
-        // 初始化資料
         fileData = files.map(f => ({
             originalName: f.name,
             tag: ""
         }));
 
-        // 排序 (Windows 檔案總管邏輯排序)
         const collator = new Intl.Collator(undefined, {numeric: true, sensitivity: 'base'});
         files.sort((a, b) => collator.compare(a.name, b.name));
         fileData.sort((a, b) => collator.compare(a.originalName, b.originalName));
@@ -207,24 +204,19 @@
         loadUI();
     });
 
-    // 4. 載入介面
     function loadUI() {
         if (files.length === 0) return;
-
         const currentFile = files[currentIndex];
         const currentData = fileData[currentIndex];
-
         imgElement.src = URL.createObjectURL(currentFile);
         imgElement.style.display = 'block';
         placeholder.style.display = 'none';
-
         fileNameDisplay.textContent = currentFile.name;
         progressDisplay.textContent = `${currentIndex + 1} / ${files.length}`;
         tagInput.value = currentData.tag;
         tagInput.focus();
     }
 
-    // 5. 儲存與導航
     function saveCurrent() {
         if (files.length === 0) return;
         fileData[currentIndex].tag = tagInput.value.trim();
@@ -233,14 +225,12 @@
     function nextImage() {
         if (files.length === 0) return;
         saveCurrent();
-        
         if (currentIndex < files.length - 1) {
             currentIndex++;
             loadUI();
         } else {
-            // 最後一張時的提示，稍微友善一點
-            if(confirm("已經是最後一張了，要下載 CSV 檔了嗎？")) {
-                exportCSV();
+            if(confirm("已經是最後一張了，要下載自動改名執行檔嗎？")) {
+                exportBAT();
             }
         }
     }
@@ -254,49 +244,79 @@
         }
     }
     
-    // 鍵盤操作支援
     function checkEnter(event) {
-        if (event.key === "Enter") {
-            nextImage();
-        }
+        if (event.key === "Enter") nextImage();
     }
     
-    // 監聽左右方向鍵
     document.addEventListener('keydown', function(event) {
-        // 只有在輸入框沒有 focus 時，才啟用左右鍵換頁，避免打字時誤觸
         if (document.activeElement !== tagInput && files.length > 0) {
             if (event.key === "ArrowRight") nextImage();
             if (event.key === "ArrowLeft") prevImage();
         }
     });
 
-    // 6. 匯出 CSV
-    function exportCSV() {
+    // --- 關鍵功能：產生 Windows 批次檔 (.bat) ---
+    function exportBAT() {
         if (files.length === 0) {
             alert("沒有資料可以匯出");
             return;
         }
         saveCurrent();
 
-        let csvContent = "\uFEFF"; 
-        csvContent += "原始檔名,標註代碼,建議新檔名\n";
+        // 1. 寫入 BAT 檔頭 (使用 UTF-8 編碼設定 chcp 65001)
+        let batContent = "@echo off\r\n";
+        batContent += "chcp 65001 >nul\r\n"; 
+        batContent += "echo ==========================================\r\n";
+        batContent += "echo 正在執行批次改名 (由 HTML 工具產生)...\r\n";
+        batContent += "echo ==========================================\r\n\r\n";
+        
+        let count = 0;
 
+        // 2. 寫入改名指令
         fileData.forEach(item => {
+            if (!item.tag) return; // 沒標籤的不改名
+
             let extension = item.originalName.split('.').pop();
-            // 如果沒有標籤，就保持原檔名；如果有，則改為 標籤.副檔名
-            let newName = item.tag ? `${item.tag}.${extension}` : item.originalName;
+            let newName = `${item.tag}.${extension}`;
             
-            // 處理 CSV 特殊字元
-            let safeTag = item.tag.includes(',') ? `"${item.tag}"` : item.tag;
-            
-            csvContent += `${item.originalName},${safeTag},${newName}\n`;
+            // 如果新舊檔名不同，才產生指令
+            if (item.originalName !== newName) {
+                // 指令格式: ren "舊名" "新名"
+                batContent += `ren "${item.originalName}" "${newName}"\r\n`;
+                count++;
+            }
         });
 
+        batContent += "\r\necho.\r\n";
+        batContent += `echo 完成！共修改 ${count} 個檔案。\r\n`;
+        batContent += "echo 請按任意鍵關閉視窗...\r\n";
+        batContent += "pause >nul\r\n";
+
+        // 3. 下載檔案
+        const blob = new Blob([batContent], { type: 'text/plain;charset=utf-8' });
+        downloadFile(blob, "開始改名.bat");
+    }
+
+    // --- 輔助功能：產生 CSV (保留備份用) ---
+    function exportCSV() {
+        if (files.length === 0) return;
+        saveCurrent();
+        let csvContent = "\uFEFF原始檔名,標註代碼,建議新檔名\n";
+        fileData.forEach(item => {
+            let extension = item.originalName.split('.').pop();
+            let newName = item.tag ? `${item.tag}.${extension}` : item.originalName;
+            let safeTag = item.tag.includes(',') ? `"${item.tag}"` : item.tag;
+            csvContent += `${item.originalName},${safeTag},${newName}\n`;
+        });
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        downloadFile(blob, "rename_log.csv");
+    }
+
+    function downloadFile(blob, fileName) {
         const link = document.createElement("a");
         const url = URL.createObjectURL(blob);
         link.setAttribute("href", url);
-        link.setAttribute("download", "rename_list.csv");
+        link.setAttribute("download", fileName);
         link.style.visibility = 'hidden';
         document.body.appendChild(link);
         link.click();
