@@ -3,56 +3,43 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>照片標註與批次改名產生器</title>
+    <title>照片標註工具 (BAT自動改名版)</title>
     <style>
         body { font-family: "Microsoft JhengHei", "Segoe UI", sans-serif; padding: 20px; background: #f0f2f5; color: #333; }
         .container { max-width: 1000px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
         
-        /* 頂部設定區 */
         .header { margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 15px; }
+        
         .config-area { background: #eef2f7; padding: 15px; border-radius: 6px; margin-top: 15px; border: 1px solid #d1d9e6; }
         .config-area summary { cursor: pointer; font-weight: bold; color: #0056b3; outline: none; }
-        .config-content { margin-top: 10px; display: flex; gap: 15px; }
-        textarea { flex: 1; height: 100px; padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-family: monospace; resize: vertical; }
-        .config-help { flex: 1; font-size: 0.9em; color: #666; line-height: 1.6; }
+        textarea { width: 100%; height: 80px; padding: 10px; margin-top:10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;}
 
-        /* 主視窗佈局 */
         .viewer { display: flex; gap: 20px; min-height: 500px; }
-        
-        /* 左側圖片區 */
-        .image-box { flex: 2; background: #222; display: flex; align-items: center; justify-content: center; border-radius: 6px; overflow: hidden; position: relative; }
+        .image-box { flex: 2; background: #222; display: flex; align-items: center; justify-content: center; border-radius: 6px; overflow: hidden; }
         .image-box img { max-width: 100%; max-height: 100%; object-fit: contain; }
         
-        /* 右側控制區 */
         .controls { flex: 1; display: flex; flex-direction: column; gap: 15px; }
         .info-panel { background: #f8f9fa; padding: 12px; border-radius: 6px; border-left: 4px solid #17a2b8; font-size: 0.9em; }
         
-        /* 快速標籤區 */
         #quickTags { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 5px; }
         .tag-btn { background: #e2e6ea; border: 1px solid #ced4da; padding: 6px 12px; border-radius: 20px; cursor: pointer; font-size: 13px; transition: 0.2s; }
-        .tag-btn:hover { background: #dbeaff; border-color: #b8daff; color: #0056b3; transform: translateY(-1px); }
-        .tag-code { font-size: 0.85em; color: #888; margin-left: 4px; }
+        .tag-btn:hover { background: #dbeaff; border-color: #b8daff; color: #0056b3; }
 
-        input[type="text"] { width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 6px; font-size: 16px; box-sizing: border-box; transition: 0.3s; }
+        input[type="text"] { width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 6px; font-size: 16px; box-sizing: border-box; }
         input[type="text"]:focus { border-color: #007bff; outline: none; }
         
         .btn-group { display: flex; gap: 10px; margin-top: auto; }
-        button { padding: 12px 20px; cursor: pointer; border: none; border-radius: 6px; font-size: 15px; font-weight: bold; transition: 0.2s; }
+        button { padding: 12px 20px; cursor: pointer; border: none; border-radius: 6px; font-size: 15px; font-weight: bold; }
         .btn-primary { background: #007bff; color: white; flex: 1; }
         .btn-primary:hover { background: #0056b3; }
         .btn-secondary { background: #6c757d; color: white; }
-        .btn-secondary:hover { background: #5a6268; }
-        .btn-clear { background: #dc3545; color: white; padding: 5px 10px; font-size: 12px; margin-left: auto; display: block; width: fit-content; margin-bottom: 5px;}
+        .btn-clear { background: #dc3545; color: white; padding: 5px 10px; font-size: 12px; margin-left: auto; }
         
-        /* 下載按鈕區 */
-        .download-area { margin-top: 15px; padding-top: 15px; border-top: 1px solid #eee; display: flex; flex-direction: column; gap: 10px; }
-        .btn-bat { background: #fd7e14; color: white; width: 100%; padding: 15px; font-size: 18px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        .btn-bat:hover { background: #e96b02; transform: translateY(-1px); }
-        .btn-csv { background: #28a745; color: white; font-size: 14px; padding: 10px; opacity: 0.9; }
-        .btn-csv:hover { background: #218838; }
+        /* 改用橘色凸顯下載按鈕 */
+        .btn-download { background: #fd7e14; color: white; width: 100%; padding: 15px; font-size: 18px; margin-top: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: 0.2s; }
+        .btn-download:hover { background: #e96b02; transform: translateY(-2px); }
 
         .upload-btn { background: #17a2b8; color: white; padding: 10px 20px; border-radius: 6px; cursor: pointer; display: inline-block; font-weight: bold; }
-        .upload-btn:hover { background: #138496; }
         #folderInput { display: none; }
     </style>
 </head>
@@ -61,30 +48,19 @@
 <div class="container">
     <div class="header">
         <div style="display:flex; justify-content:space-between; align-items:center;">
-            <h2 style="margin:0;">📷 照片標註與改名工具</h2>
-            <label for="folderInput" class="upload-btn">📂 1. 選擇照片資料夾</label>
+            <h2 style="margin:0;">📷 照片標註工具 (BAT版)</h2>
+            <label for="folderInput" class="upload-btn">📂 選擇照片資料夾</label>
             <input type="file" id="folderInput" webkitdirectory directory multiple>
         </div>
 
         <details class="config-area" open>
-            <summary>⚙️ 按此設定：中文標籤與檔案代碼對照表</summary>
-            <div class="config-content">
-                <textarea id="tagConfig" placeholder="格式：中文名稱,英文代碼 (一行一個)" oninput="renderQuickTags()">
+            <summary>⚙️ 設定標籤 (中文,代碼)</summary>
+            <textarea id="tagConfig" placeholder="格式：中文名稱,英文代碼" oninput="renderQuickTags()">
 台北展覽,TPE_Expo
 高雄出差,KHH_Trip
 員工聚餐,Dinner
 產品測試,Test
-                </textarea>
-                <div class="config-help">
-                    <strong>如何設定：</strong><br>
-                    請在左側輸入「中文,英文」，一行一個。<br>
-                    輸入後，下方會自動產生按鈕。<br>
-                    <br>
-                    <strong>最後步驟：</strong><br>
-                    做完標註後，點擊橘色按鈕下載 <code>.bat</code> 檔，<br>
-                    放在照片資料夾內點兩下即可自動改名。
-                </div>
-            </div>
+            </textarea>
         </details>
     </div>
 
@@ -96,43 +72,35 @@
 
         <div class="controls">
             <div class="info-panel">
-                <div style="margin-bottom:5px; color:#555;">原始檔名</div>
-                <strong id="fileName" style="font-size:1.1em; word-break: break-all;">-</strong>
-                <div style="margin-top:5px; font-size:0.85em; color:#888;">進度: <span id="progress">0 / 0</span></div>
+                <div>原始檔名: <strong id="fileName">-</strong></div>
+                <div style="margin-top:5px; color:#666;">進度: <span id="progress">0 / 0</span></div>
             </div>
 
             <div>
-                <label style="font-weight:bold; margin-bottom:8px; display:block;">快速標籤 (點擊加入):</label>
+                <label style="font-weight:bold; margin-bottom:8px; display:block;">快速標籤:</label>
                 <div id="quickTags"></div>
             </div>
 
-            <div style="margin-top: 10px;">
+            <div>
                 <div style="display:flex; justify-content:space-between; align-items:end; margin-bottom:5px;">
-                    <label for="newTag" style="font-weight:bold;">新檔名代碼:</label>
-                    <button class="btn-clear" onclick="clearInput()">清除重填</button>
+                    <label style="font-weight:bold;">新檔名代碼:</label>
+                    <button class="btn-clear" onclick="clearInput()">清除</button>
                 </div>
-                <input type="text" id="newTag" placeholder="點擊上方按鈕或手動輸入..." onkeydown="checkEnter(event)">
-                <div style="font-size:0.8em; color:#888; margin-top:5px;">* 若有多個標籤，系統會自動用底線 "_" 連接</div>
+                <input type="text" id="newTag" placeholder="輸入代碼..." onkeydown="checkEnter(event)" oninput="validateInput(this)">
             </div>
 
             <div class="btn-group">
                 <button class="btn-secondary" onclick="prevImage()">上一張 (←)</button>
-                <button class="btn-primary" onclick="nextImage()">下一張 / 儲存 (Enter)</button>
+                <button class="btn-primary" onclick="nextImage()">下一張 / 暫存 (Enter)</button>
             </div>
             
-            <div class="download-area">
-                <button class="btn-bat" onclick="exportBAT()">⚡ 下載自動改名執行檔 (.bat)</button>
-                <button class="btn-csv" onclick="exportCSV()">📥 僅下載 CSV 紀錄檔 (Excel用)</button>
-            </div>
+            <button class="btn-download" onclick="exportBat()">⚡ 下載自動改名執行檔 (.bat)</button>
         </div>
     </div>
 </div>
 
 <script>
-    let files = [];
-    let fileData = []; 
-    let currentIndex = 0;
-
+    let files = [], fileData = [], currentIndex = 0;
     const folderInput = document.getElementById('folderInput');
     const imgElement = document.getElementById('currentImage');
     const placeholder = document.getElementById('placeholder');
@@ -146,9 +114,7 @@
 
     function renderQuickTags() {
         quickTagsContainer.innerHTML = '';
-        const configText = tagConfig.value.trim();
-        const lines = configText.split('\n');
-
+        const lines = tagConfig.value.trim().split('\n');
         lines.forEach(line => {
             const parts = line.split(/[,，]/);
             if (parts.length >= 2) {
@@ -157,7 +123,7 @@
                 if (label && code) {
                     const btn = document.createElement('button');
                     btn.className = 'tag-btn';
-                    btn.innerHTML = `${label} <span class="tag-code">${code}</span>`;
+                    btn.textContent = `${label} (${code})`;
                     btn.onclick = () => addTag(code);
                     quickTagsContainer.appendChild(btn);
                 }
@@ -166,36 +132,23 @@
     }
 
     function addTag(code) {
-        const currentVal = tagInput.value.trim();
-        if (currentVal === "") {
-            tagInput.value = code;
-        } else {
-            if (!currentVal.endsWith(code)) {
-                tagInput.value = currentVal + "_" + code;
-            }
-        }
+        const val = tagInput.value.trim();
+        tagInput.value = val ? (val.endsWith(code) ? val : val + "_" + code) : code;
         tagInput.focus();
     }
 
-    function clearInput() {
-        tagInput.value = "";
-        tagInput.focus();
+    function clearInput() { tagInput.value = ""; tagInput.focus(); }
+
+    // 防呆：禁止非法字元
+    function validateInput(input) {
+        input.value = input.value.replace(/[\\/:*?"<>|]/g, '');
     }
 
     folderInput.addEventListener('change', function(e) {
-        const allFiles = Array.from(e.target.files);
-        files = allFiles.filter(f => f.type.startsWith('image/'));
+        files = Array.from(e.target.files).filter(f => f.type.startsWith('image/'));
+        if (files.length === 0) { alert("沒有圖片！"); return; }
         
-        if (files.length === 0) {
-            alert("此資料夾內沒有圖片！");
-            return;
-        }
-
-        fileData = files.map(f => ({
-            originalName: f.name,
-            tag: ""
-        }));
-
+        fileData = files.map(f => ({ originalName: f.name, tag: "" }));
         const collator = new Intl.Collator(undefined, {numeric: true, sensitivity: 'base'});
         files.sort((a, b) => collator.compare(a.name, b.name));
         fileData.sort((a, b) => collator.compare(a.originalName, b.originalName));
@@ -205,124 +158,89 @@
     });
 
     function loadUI() {
-        if (files.length === 0) return;
-        const currentFile = files[currentIndex];
-        const currentData = fileData[currentIndex];
-        imgElement.src = URL.createObjectURL(currentFile);
+        if (!files.length) return;
+        // 釋放記憶體
+        if (imgElement.src) URL.revokeObjectURL(imgElement.src);
+
+        imgElement.src = URL.createObjectURL(files[currentIndex]);
         imgElement.style.display = 'block';
         placeholder.style.display = 'none';
-        fileNameDisplay.textContent = currentFile.name;
+        fileNameDisplay.textContent = files[currentIndex].name;
         progressDisplay.textContent = `${currentIndex + 1} / ${files.length}`;
-        tagInput.value = currentData.tag;
+        tagInput.value = fileData[currentIndex].tag;
         tagInput.focus();
     }
 
-    function saveCurrent() {
-        if (files.length === 0) return;
-        fileData[currentIndex].tag = tagInput.value.trim();
-    }
-
+    function saveCurrent() { if (files.length) fileData[currentIndex].tag = tagInput.value.trim(); }
+    
     function nextImage() {
-        if (files.length === 0) return;
         saveCurrent();
-        if (currentIndex < files.length - 1) {
-            currentIndex++;
-            loadUI();
-        } else {
-            if(confirm("已經是最後一張了，要下載自動改名執行檔嗎？")) {
-                exportBAT();
-            }
-        }
+        if (currentIndex < files.length - 1) { currentIndex++; loadUI(); }
+        else { alert("已是最後一張，可點擊下方按鈕下載執行檔。"); }
+    }
+    
+    function prevImage() {
+        saveCurrent();
+        if (currentIndex > 0) { currentIndex--; loadUI(); }
     }
 
-    function prevImage() {
-        if (files.length === 0) return;
-        saveCurrent();
-        if (currentIndex > 0) {
-            currentIndex--;
-            loadUI();
-        }
-    }
+    function checkEnter(e) { if (e.key === "Enter") nextImage(); }
     
-    function checkEnter(event) {
-        if (event.key === "Enter") nextImage();
-    }
-    
-    document.addEventListener('keydown', function(event) {
-        if (document.activeElement !== tagInput && files.length > 0) {
-            if (event.key === "ArrowRight") nextImage();
-            if (event.key === "ArrowLeft") prevImage();
+    document.addEventListener('keydown', (e) => {
+        if (document.activeElement !== tagInput && files.length) {
+            if (e.key === "ArrowRight") nextImage();
+            if (e.key === "ArrowLeft") prevImage();
         }
     });
+    
+    // 防止未下載就離開
+    window.onbeforeunload = function() {
+        if (files.length > 0) return "您的變更尚未下載，確定要離開嗎？";
+    };
 
-    // --- 關鍵功能：產生 Windows 批次檔 (.bat) ---
-    function exportBAT() {
-        if (files.length === 0) {
-            alert("沒有資料可以匯出");
-            return;
-        }
+    // --- 重點：生成 .bat 檔 ---
+    function exportBat() {
+        if (!files.length) return;
         saveCurrent();
 
-        // 1. 寫入 BAT 檔頭 (使用 UTF-8 編碼設定 chcp 65001)
+        // 1. 寫入批次檔開頭：關閉回顯，切換 UTF-8 編碼
         let batContent = "@echo off\r\n";
-        batContent += "chcp 65001 >nul\r\n"; 
-        batContent += "echo ==========================================\r\n";
-        batContent += "echo 正在執行批次改名 (由 HTML 工具產生)...\r\n";
-        batContent += "echo ==========================================\r\n\r\n";
-        
-        let count = 0;
+        batContent += "chcp 65001 >nul\r\n"; // 切換代碼頁到 UTF-8，並隱藏成功訊息
+        batContent += "echo 正在處理改名，請稍候...\r\n\r\n";
 
-        // 2. 寫入改名指令
+        let renameCount = 0;
+
+        // 2. 迴圈生成 rename 指令
         fileData.forEach(item => {
-            if (!item.tag) return; // 沒標籤的不改名
+            // 如果沒有標籤，就不改名
+            if (!item.tag) return;
 
-            let extension = item.originalName.split('.').pop();
-            let newName = `${item.tag}.${extension}`;
+            let ext = item.originalName.split('.').pop();
+            let newName = `${item.tag}.${ext}`;
             
-            // 如果新舊檔名不同，才產生指令
-            if (item.originalName !== newName) {
-                // 指令格式: ren "舊名" "新名"
-                batContent += `ren "${item.originalName}" "${newName}"\r\n`;
-                count++;
-            }
+            // 如果新舊檔名一樣，跳過
+            if (item.originalName === newName) return;
+
+            // 生成指令：ren "舊名" "新名"
+            // 使用雙引號包住檔名，防止檔名中有空格導致錯誤
+            batContent += `ren "${item.originalName}" "${newName}"\r\n`;
+            renameCount++;
         });
 
-        batContent += "\r\necho.\r\n";
-        batContent += `echo 完成！共修改 ${count} 個檔案。\r\n`;
-        batContent += "echo 請按任意鍵關閉視窗...\r\n";
-        batContent += "pause >nul\r\n";
+        // 3. 結尾：顯示完成訊息並暫停
+        batContent += `\r\necho.\r\necho ------------------------------\r\n`;
+        batContent += `echo 處理完成！共嘗試修改 ${renameCount} 個檔案。\r\n`;
+        batContent += `echo 如果看到「系統找不到指定的檔案」或「檔名重複」，請檢查資料夾內容。\r\n`;
+        batContent += `echo ------------------------------\r\n`;
+        batContent += `pause`;
 
-        // 3. 下載檔案
-        const blob = new Blob([batContent], { type: 'text/plain;charset=utf-8' });
-        downloadFile(blob, "開始改名.bat");
-    }
-
-    // --- 輔助功能：產生 CSV (保留備份用) ---
-    function exportCSV() {
-        if (files.length === 0) return;
-        saveCurrent();
-        let csvContent = "\uFEFF原始檔名,標註代碼,建議新檔名\n";
-        fileData.forEach(item => {
-            let extension = item.originalName.split('.').pop();
-            let newName = item.tag ? `${item.tag}.${extension}` : item.originalName;
-            let safeTag = item.tag.includes(',') ? `"${item.tag}"` : item.tag;
-            csvContent += `${item.originalName},${safeTag},${newName}\n`;
-        });
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        downloadFile(blob, "rename_log.csv");
-    }
-
-    function downloadFile(blob, fileName) {
+        // 4. 下載檔案
+        const blob = new Blob([batContent], { type: 'text/plain;charset=utf-8' }); // 改用 text/plain 避免瀏覽器過度警告
         const link = document.createElement("a");
-        const url = URL.createObjectURL(blob);
-        link.setAttribute("href", url);
-        link.setAttribute("download", fileName);
-        link.style.visibility = 'hidden';
-        document.body.appendChild(link);
+        link.href = URL.createObjectURL(blob);
+        link.download = "開始改名.bat"; // 指定副檔名
         link.click();
-        document.body.removeChild(link);
     }
 </script>
-
 </body>
 </html>
