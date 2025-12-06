@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>照片標註小工具 (自訂標籤版)</title>
+    <style>
+        body { font-family: "Microsoft JhengHei", "Segoe UI", sans-serif; padding: 20px; background: #f0f2f5; color: #333; }
+        .container { max-width: 1000px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        
+        /* 頂部設定區 */
+        .header { margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 15px; }
+        .config-area { background: #eef2f7; padding: 15px; border-radius: 6px; margin-top: 15px; border: 1px solid #d1d9e6; }
+        .config-area summary { cursor: pointer; font-weight: bold; color: #0056b3; outline: none; }
+        .config-content { margin-top: 10px; display: flex; gap: 15px; }
+        textarea { flex: 1; height: 100px; padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-family: monospace; resize: vertical; }
+        .config-help { flex: 1; font-size: 0.9em; color: #666; line-height: 1.6; }
+
+        /* 主視窗佈局 */
+        .viewer { display: flex; gap: 20px; min-height: 500px; }
+        
+        /* 左側圖片區 */
+        .image-box { flex: 2; background: #222; display: flex; align-items: center; justify-content: center; border-radius: 6px; overflow: hidden; position: relative; }
+        .image-box img { max-width: 100%; max-height: 100%; object-fit: contain; }
+        
+        /* 右側控制區 */
+        .controls { flex: 1; display: flex; flex-direction: column; gap: 15px; }
+        .info-panel { background: #f8f9fa; padding: 12px; border-radius: 6px; border-left: 4px solid #17a2b8; font-size: 0.9em; }
+        
+        /* 快速標籤區 */
+        #quickTags { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 5px; }
+        .tag-btn { background: #e2e6ea; border: 1px solid #ced4da; padding: 6px 12px; border-radius: 20px; cursor: pointer; font-size: 13px; transition: 0.2s; }
+        .tag-btn:hover { background: #dbeaff; border-color: #b8daff; color: #0056b3; transform: translateY(-1px); }
+        .tag-code { font-size: 0.85em; color: #888; margin-left: 4px; }
+
+        input[type="text"] { width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 6px; font-size: 16px; box-sizing: border-box; transition: 0.3s; }
+        input[type="text"]:focus { border-color: #007bff; outline: none; }
+        
+        .btn-group { display: flex; gap: 10px; margin-top: auto; }
+        button { padding: 12px 20px; cursor: pointer; border: none; border-radius: 6px; font-size: 15px; font-weight: bold; transition: 0.2s; }
+        .btn-primary { background: #007bff; color: white; flex: 1; }
+        .btn-primary:hover { background: #0056b3; }
+        .btn-secondary { background: #6c757d; color: white; }
+        .btn-secondary:hover { background: #5a6268; }
+        .btn-clear { background: #dc3545; color: white; padding: 5px 10px; font-size: 12px; margin-left: auto; display: block; width: fit-content; margin-bottom: 5px;}
+        .btn-success { background: #28a745; color: white; width: 100%; padding: 15px; font-size: 18px; margin-top: 10px; }
+        .btn-success:hover { background: #218838; }
+
+        .upload-btn { background: #17a2b8; color: white; padding: 10px 20px; border-radius: 6px; cursor: pointer; display: inline-block; font-weight: bold; }
+        .upload-btn:hover { background: #138496; }
+        #folderInput { display: none; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <h2 style="margin:0;">📷 照片標註與改名工具</h2>
+            <label for="folderInput" class="upload-btn">📂 1. 選擇照片資料夾</label>
+            <input type="file" id="folderInput" webkitdirectory directory multiple>
+        </div>
+
+        <details class="config-area" open>
+            <summary>⚙️ 按此設定：中文標籤與檔案代碼對照表</summary>
+            <div class="config-content">
+                <textarea id="tagConfig" placeholder="格式：中文名稱,英文代碼 (一行一個)" oninput="renderQuickTags()">
+台北展覽,TPE_Expo
+高雄出差,KHH_Trip
+員工聚餐,Dinner
+產品測試,Test
+                </textarea>
+                <div class="config-help">
+                    <strong>如何設定：</strong><br>
+                    請在左側輸入您想要的對應，格式為「中文,英文」，一行一個。<br>
+                    例如：<br>
+                    <code>會議記錄,Meeting</code><br>
+                    <code>戶外教學,Outdoor</code><br>
+                    <br>
+                    輸入後，下方會自動產生按鈕。
+                </div>
+            </div>
+        </details>
+    </div>
+
+    <div class="viewer">
+        <div class="image-box">
+            <img id="currentImage" src="" alt="" style="display:none;">
+            <div id="placeholder" style="color:#aaa;">請點擊右上方選擇資料夾開始</div>
+        </div>
+
+        <div class="controls">
+            <div class="info-panel">
+                <div style="margin-bottom:5px; color:#555;">原始檔名</div>
+                <strong id="fileName" style="font-size:1.1em; word-break: break-all;">-</strong>
+                <div style="margin-top:5px; font-size:0.85em; color:#888;">進度: <span id="progress">0 / 0</span></div>
+            </div>
+
+            <div>
+                <label style="font-weight:bold; margin-bottom:8px; display:block;">快速標籤 (點擊加入):</label>
+                <div id="quickTags"></div>
+            </div>
+
+            <div style="margin-top: 10px;">
+                <div style="display:flex; justify-content:space-between; align-items:end; margin-bottom:5px;">
+                    <label for="newTag" style="font-weight:bold;">新檔名代碼:</label>
+                    <button class="btn-clear" onclick="clearInput()">清除重填</button>
+                </div>
+                <input type="text" id="newTag" placeholder="點擊上方按鈕或手動輸入..." onkeydown="checkEnter(event)">
+                <div style="font-size:0.8em; color:#888; margin-top:5px;">* 若有多個標籤，系統會自動用底線 "_" 連接</div>
+            </div>
+
+            <div class="btn-group">
+                <button class="btn-secondary" onclick="prevImage()">上一張 (←)</button>
+                <button class="btn-primary" onclick="nextImage()">下一張 / 儲存 (Enter)</button>
+            </div>
+            
+            <hr style="width:100%; border:0; border-top:1px solid #eee; margin: 20px 0;">
+            <button class="btn-success" onclick="exportCSV()">📥 下載 CSV 改名清單</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let files = [];
+    let fileData = []; 
+    let currentIndex = 0;
+
+    const folderInput = document.getElementById('folderInput');
+    const imgElement = document.getElementById('currentImage');
+    const placeholder = document.getElementById('placeholder');
+    const fileNameDisplay = document.getElementById('fileName');
+    const progressDisplay = document.getElementById('progress');
+    const tagInput = document.getElementById('newTag');
+    const tagConfig = document.getElementById('tagConfig');
+    const quickTagsContainer = document.getElementById('quickTags');
+
+    // 初始化：產生預設標籤按鈕
+    renderQuickTags();
+
+    // 1. 產生快速標籤按鈕邏輯
+    function renderQuickTags() {
+        quickTagsContainer.innerHTML = '';
+        const configText = tagConfig.value.trim();
+        const lines = configText.split('\n');
+
+        lines.forEach(line => {
+            // 簡單處理逗號分隔，並移除多餘空白
+            const parts = line.split(/[,，]/); // 支援全形和半形逗號
+            if (parts.length >= 2) {
+                const label = parts[0].trim();
+                const code = parts[1].trim();
+
+                if (label && code) {
+                    const btn = document.createElement('button');
+                    btn.className = 'tag-btn';
+                    btn.innerHTML = `${label} <span class="tag-code">${code}</span>`;
+                    btn.onclick = () => addTag(code);
+                    quickTagsContainer.appendChild(btn);
+                }
+            }
+        });
+    }
+
+    // 2. 點擊按鈕加入標籤
+    function addTag(code) {
+        const currentVal = tagInput.value.trim();
+        if (currentVal === "") {
+            tagInput.value = code;
+        } else {
+            // 如果已經有內容，用底線連接 (例如: Meeting_2023)
+            // 防止重複加入一樣的尾綴
+            if (!currentVal.endsWith(code)) {
+                tagInput.value = currentVal + "_" + code;
+            }
+        }
+        tagInput.focus();
+    }
+
+    function clearInput() {
+        tagInput.value = "";
+        tagInput.focus();
+    }
+
+    // 3. 讀取資料夾
+    folderInput.addEventListener('change', function(e) {
+        const allFiles = Array.from(e.target.files);
+        files = allFiles.filter(f => f.type.startsWith('image/'));
+        
+        if (files.length === 0) {
+            alert("此資料夾內沒有圖片！");
+            return;
+        }
+
+        // 初始化資料
+        fileData = files.map(f => ({
+            originalName: f.name,
+            tag: ""
+        }));
+
+        // 排序 (Windows 檔案總管邏輯排序)
+        const collator = new Intl.Collator(undefined, {numeric: true, sensitivity: 'base'});
+        files.sort((a, b) => collator.compare(a.name, b.name));
+        fileData.sort((a, b) => collator.compare(a.originalName, b.originalName));
+
+        currentIndex = 0;
+        loadUI();
+    });
+
+    // 4. 載入介面
+    function loadUI() {
+        if (files.length === 0) return;
+
+        const currentFile = files[currentIndex];
+        const currentData = fileData[currentIndex];
+
+        imgElement.src = URL.createObjectURL(currentFile);
+        imgElement.style.display = 'block';
+        placeholder.style.display = 'none';
+
+        fileNameDisplay.textContent = currentFile.name;
+        progressDisplay.textContent = `${currentIndex + 1} / ${files.length}`;
+        tagInput.value = currentData.tag;
+        tagInput.focus();
+    }
+
+    // 5. 儲存與導航
+    function saveCurrent() {
+        if (files.length === 0) return;
+        fileData[currentIndex].tag = tagInput.value.trim();
+    }
+
+    function nextImage() {
+        if (files.length === 0) return;
+        saveCurrent();
+        
+        if (currentIndex < files.length - 1) {
+            currentIndex++;
+            loadUI();
+        } else {
+            // 最後一張時的提示，稍微友善一點
+            if(confirm("已經是最後一張了，要下載 CSV 檔了嗎？")) {
+                exportCSV();
+            }
+        }
+    }
+
+    function prevImage() {
+        if (files.length === 0) return;
+        saveCurrent();
+        if (currentIndex > 0) {
+            currentIndex--;
+            loadUI();
+        }
+    }
+    
+    // 鍵盤操作支援
+    function checkEnter(event) {
+        if (event.key === "Enter") {
+            nextImage();
+        }
+    }
+    
+    // 監聽左右方向鍵
+    document.addEventListener('keydown', function(event) {
+        // 只有在輸入框沒有 focus 時，才啟用左右鍵換頁，避免打字時誤觸
+        if (document.activeElement !== tagInput && files.length > 0) {
+            if (event.key === "ArrowRight") nextImage();
+            if (event.key === "ArrowLeft") prevImage();
+        }
+    });
+
+    // 6. 匯出 CSV
+    function exportCSV() {
+        if (files.length === 0) {
+            alert("沒有資料可以匯出");
+            return;
+        }
+        saveCurrent();
+
+        let csvContent = "\uFEFF"; 
+        csvContent += "原始檔名,標註代碼,建議新檔名\n";
+
+        fileData.forEach(item => {
+            let extension = item.originalName.split('.').pop();
+            // 如果沒有標籤，就保持原檔名；如果有，則改為 標籤.副檔名
+            let newName = item.tag ? `${item.tag}.${extension}` : item.originalName;
+            
+            // 處理 CSV 特殊字元
+            let safeTag = item.tag.includes(',') ? `"${item.tag}"` : item.tag;
+            
+            csvContent += `${item.originalName},${safeTag},${newName}\n`;
+        });
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement("a");
+        const url = URL.createObjectURL(blob);
+        link.setAttribute("href", url);
+        link.setAttribute("download", "rename_list.csv");
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+</script>
+
+</body>
+</html>
