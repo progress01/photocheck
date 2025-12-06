@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>照片歸檔神器 v7.3 (流水號即時預覽版)</title>
+    <title>照片歸檔神器 v7.6 (完整教學版)</title>
     <style>
         :root { --primary: #0d6efd; --purple: #6610f2; --success: #198754; --warning: #ffc107; --danger: #dc3545; --bg: #f8f9fa; --overlay-bg: rgba(0,0,0,0.85); }
         body { font-family: "Microsoft JhengHei", "Segoe UI", sans-serif; margin: 0; padding: 20px; background: var(--bg); color: #333; height: 100vh; box-sizing: border-box; display: flex; flex-direction: column; overflow: hidden; }
@@ -68,17 +68,19 @@
         /* 預覽與導航區 */
         .preview-box { background: #e9ecef; padding: 12px; border-radius: 6px; text-align: right; font-family: monospace; font-size: 0.95rem; color: #555; margin-top: auto; border: 1px solid #dee2e6; }
         
-        /* 導航按鈕 (恢復) */
+        /* 導航按鈕 */
         .nav-btn-group { display: flex; gap: 10px; margin-top: 10px; }
         .nav-btn { flex: 1; padding: 12px; font-size: 15px; border: 1px solid #ccc; background: white; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.2s; }
         .nav-btn:hover { background: #f0f0f0; }
         .nav-btn-primary { flex: 1.5; background: var(--primary); color: white; border: none; }
         .nav-btn-primary:hover { background: #0b5ed7; }
 
-        /* 下載按鈕 */
-        .btn-download { background: #fd7e14; color: white; width: 100%; padding: 15px; font-size: 16px; margin-top: 10px; border: none; border-radius: 6px; cursor: not-allowed; font-weight: bold; opacity: 0.5; transition:0.3s; pointer-events: none; }
+        /* 下載按鈕群 */
+        .btn-download { background: #fd7e14; color: white; width: 100%; padding: 15px; font-size: 15px; border: none; border-radius: 6px; cursor: not-allowed; font-weight: bold; opacity: 0.5; transition:0.3s; pointer-events: none; margin-top: 5px; }
         .btn-download.active { cursor: pointer; opacity: 1; pointer-events: auto; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        .btn-download.active:hover { background: #e96b02; transform: translateY(-2px); }
+        .btn-download.active:hover { transform: translateY(-2px); }
+        #reportBtn.active:hover { background: #146c43; }
+        #downloadBtn.active:hover { background: #e96b02; }
 
         /* 上方按鈕 */
         .btn-help { background: var(--purple); color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px; }
@@ -122,12 +124,14 @@
         .win-alert { border: 1px solid #d9d9d9; background: white; margin: 15px 0; box-shadow: 0 2px 5px rgba(0,0,0,0.1); font-family: "Segoe UI", sans-serif; }
         .win-bar { background: #ffcc00; padding: 10px; display: flex; align-items: center; gap: 10px; }
         .win-body { padding: 15px; font-size: 13px; color: #333; }
+        
+        .important-box { background:#fff3cd; border-left:5px solid #ffc107; padding:15px; margin-bottom:15px; }
     </style>
 </head>
 <body>
 
 <div class="navbar">
-    <div class="nav-title">📷 照片歸檔神器 <span style="font-size:0.8em; font-weight:normal;">v7.3</span></div>
+    <div class="nav-title">📷 照片歸檔神器 <span style="font-size:0.8em; font-weight:normal;">v7.6</span></div>
     <div style="display:flex; gap:10px; align-items:center;">
         <button class="tool-btn" onclick="rotateImage()">⟳ 轉向 (R)</button>
         <button class="btn-help" onclick="openHelpModal('tab1')">❓ 教學</button>
@@ -185,7 +189,10 @@
                 <button class="nav-btn nav-btn-primary" onclick="nextImage()">下一張 (Enter)</button>
             </div>
 
-            <button id="downloadBtn" class="btn-download" onclick="exportBat()">⚡ 下載整理執行檔 (.bat)</button>
+            <div style="margin-top:10px;">
+                <button id="reportBtn" class="btn-download" style="background:#198754;" onclick="exportReport()">📄 下載 Word 貼上用草稿 (.html)</button>
+                <button id="downloadBtn" class="btn-download" onclick="exportBat()">⚡ 下載整理執行檔 (.bat)</button>
+            </div>
         </div>
     </div>
 </div>
@@ -214,36 +221,47 @@
     <div class="modal-content" onclick="event.stopPropagation()">
         <div class="modal-tabs">
             <div class="tab-btn active" onclick="switchTab('tab1')" id="btn-tab1">📖 操作流程</div>
-            <div class="tab-btn" onclick="switchTab('tab2')" id="btn-tab2">🧪 原理與安全性</div>
+            <div class="tab-btn" onclick="switchTab('tab2')" id="btn-tab2">🧪 原理與位置</div>
             <button style="margin-left:auto; border:none; background:none; font-size:24px; cursor:pointer; padding:0 20px;" onclick="closeHelpModal()">×</button>
         </div>
         <div id="tab1" class="modal-body active">
+            <div class="important-box">
+                <strong>⚠️ 重要第一步：</strong><br>
+                請確保這個 <code>.html</code> 工具檔案，是放在您 <b>「照片資料夾的最外層」</b>。<br>
+                如果是直接從網路下載，請先將它 <b>剪下/貼上</b> 到您的工作資料夾中。
+            </div>
             <div class="help-section">
-                <div class="help-title">基本操作</div>
+                <div class="help-title">基本操作 SOP</div>
                 <ul style="line-height:2;">
-                    <li><b>步驟 1：</b>點擊右上角綠色按鈕 <b>「📂 選擇資料夾」</b>。</li>
-                    <li><b>步驟 2：</b>左手按鍵盤 (1~4, A~D) 分類，右手按 Enter 下一張。</li>
-                    <li><b>步驟 3：</b>遇到廢片直接按 <b>Delete</b> 丟棄。</li>
-                    <li><b>步驟 4：</b>完成後下載 .bat 檔執行。</li>
+                    <li><b>步驟 1 (整理)：</b>點擊「📂 選擇資料夾」讀取照片。</li>
+                    <li><b>步驟 2 (歸檔)：</b>用鍵盤分類、刪除、命名照片。</li>
+                    <li><b>步驟 3 (執行)：</b>按「⚡ 下載整理執行檔 (.bat)」，並執行它。</li>
+                    <li><b>步驟 4 (報告)：</b>確認照片歸檔後，按「📄 下載 Word 草稿」，打開並複製到 Word。</li>
                 </ul>
             </div>
             <div class="help-section">
                 <div class="help-title">進階功能</div>
-                <p><b>⚙️ 設定：</b> 可以自己修改分類名稱與快捷鍵。</p>
-                <p><b>🔓 鎖定分類：</b> 適合連拍場景，不用每一張都重選主分類。</p>
-                <p><b>✏️ 自訂命名：</b> 關閉「自動流水號」開關，即可輸入特殊檔名。</p>
+                <p><b>🔓 鎖定分類：</b> 適合連拍，不用每張重選分類。</p>
+                <p><b>✏️ 自訂命名：</b> 關閉「自動流水號」可輸入特殊檔名。</p>
             </div>
         </div>
         <div id="tab2" class="modal-body">
             <div class="help-section">
-                <div class="help-title">.bat 檔是什麼？</div>
-                <p>它是純文字的「工作清單」，幫您自動建立資料夾、移動檔案。<b>完全不需連網，照片不上傳。</b></p>
-                <div class="bat-diagram"><div class="bat-step"><span class="bat-icon">🏗️</span>建資料夾</div><div class="bat-step"><span class="bat-icon">🚚</span>移動改名</div><div class="bat-step"><span class="bat-icon">🗑️</span>廢片回收</div></div>
+                <div class="help-title">檔案位置示意圖</div>
+                <p>為了讓「報告草稿」能抓到照片，您的資料夾結構應該要是這樣：</p>
+                <div style="background:#333; color:white; padding:15px; border-radius:6px; font-family:monospace; line-height:1.5;">
+                    📂 2025活動照片 (您的工作區)<br>
+                    ├── ⚙️ 照片歸檔神器.html (本工具)<br>
+                    ├── ⚙️ 開始整理.bat (產生檔)<br>
+                    ├── 📄 報告用_草稿.html (產生檔)<br>
+                    ├── 📂 會議記錄 (歸檔後)<br>
+                    └── 📂 現場照片 (歸檔後)
+                </div>
             </div>
             <div class="help-section">
-                <div class="help-title">遇到 Windows 警告？</div>
-                <div class="win-alert"><div class="win-bar"><strong>!</strong> 無法開啟這些檔案</div><div class="win-body">C:\Users\...\開始整理.bat</div></div>
-                <p>請對檔案按 <b>右鍵</b> ➔ <b>內容</b> ➔ 勾選 <b>「解除鎖定」</b> ➔ 確定。</p>
+                <div class="help-title">.bat 檔是什麼？</div>
+                <p>它是純文字的「搬運工」，幫您自動建立資料夾、移動檔案。<b>完全不需連網，照片不上傳。</b></p>
+                <div class="bat-diagram"><div class="bat-step"><span class="bat-icon">🏗️</span>建資料夾</div><div class="bat-step"><span class="bat-icon">🚚</span>移動改名</div><div class="bat-step"><span class="bat-icon">🗑️</span>廢片回收</div></div>
             </div>
         </div>
     </div>
@@ -293,6 +311,7 @@
         preview: document.getElementById('finalPreview'),
         uploadBtn: document.getElementById('uploadBtn'),
         downloadBtn: document.getElementById('downloadBtn'),
+        reportBtn: document.getElementById('reportBtn'),
         trashOverlay: document.getElementById('trashOverlay'),
         welcomeOverlay: document.getElementById('welcomeOverlay'),
         dimmer: document.getElementById('dimmer'),
@@ -408,6 +427,25 @@
         updateUI();
     }
 
+    // --- 共用檔名生成 (確保一致性) ---
+    function generateFilename(d, seqNum) {
+        let parts = [d.category];
+        tags.forEach(t => { if(d.tags.has(t.name)) parts.push(t.name); });
+
+        let ext = "jpg"; 
+        if(d.originalName) ext = d.originalName.split('.').pop();
+        
+        let finalName = "";
+        if(d.isAuto !== false) { 
+            let seqStr = String(seqNum).padStart(3,'0');
+            finalName = `${parts.join('_')}_${seqStr}.${ext}`;
+        } else { 
+            let cust = d.customName || "名稱";
+            finalName = `${parts.join('_')}_${cust}.${ext}`;
+        }
+        return finalName;
+    }
+
     function updateUI() {
         let data = getData();
         
@@ -416,12 +454,10 @@
         document.querySelectorAll('.cat-btn').forEach(b => b.classList.toggle('active', !data.isDeleted && b.dataset.val === data.category));
         document.querySelectorAll('.tag-btn').forEach(b => b.classList.toggle('active', data.tags.has(b.dataset.val)));
 
-        // 命名狀態回填
         UI.autoSeqCheck.checked = (data.isAuto !== false); 
         UI.customInput.value = data.customName || "";
         UI.customInput.disabled = UI.autoSeqCheck.checked;
 
-        // 預覽文字
         if (data.isDeleted) {
             UI.preview.textContent = "🗑️ 將移至回收桶";
             UI.preview.style.color = "#dc3545";
@@ -429,35 +465,23 @@
             UI.preview.textContent = "請選擇主分類...";
             UI.preview.style.color = "#666";
         } else {
-            let parts = [data.category];
-            tags.forEach(t => { if(data.tags.has(t.name)) parts.push(t.name); });
-            
-            let fileName = "";
-            if (data.isAuto !== false) { 
-                // --- 修正: 即時計算流水號 ---
-                let seqNum = 1;
-                if(!isDemoMode && data.category) {
-                    seqNum = 0;
-                    // 從 0 到 currentIndex，計算同分類且未刪除的數量
-                    for(let i=0; i<=currentIndex; i++) {
-                        if(fileData[i].category === data.category && !fileData[i].isDeleted) {
-                            seqNum++;
-                        }
+            let seqNum = 1;
+            if(!isDemoMode && data.category) {
+                seqNum = 0;
+                for(let i=0; i<=currentIndex; i++) {
+                    if(fileData[i].category === data.category && !fileData[i].isDeleted) {
+                        seqNum++;
                     }
-                    if(seqNum === 0) seqNum = 1; // 防呆
                 }
-                fileName = `${parts.join('_')}_${String(seqNum).padStart(3,'0')}.jpg`;
-            } else { 
-                let customPart = data.customName || "名稱";
-                fileName = `${parts.join('_')}_${customPart}.jpg`;
+                if(seqNum === 0) seqNum = 1;
             }
-            UI.preview.textContent = `存檔為: ${data.category}\\${fileName}`;
+            
+            let finalName = generateFilename(data, seqNum);
+            UI.preview.textContent = `存檔為: ${data.category}\\${finalName}`;
             UI.preview.style.color = "#333";
         }
     }
     
-    function updatePreview() { updateUI(); } 
-
     // --- 鍵盤監聽 ---
     document.addEventListener('keydown', (e) => {
         if (UI.welcomeOverlay.style.display !== 'none') return;
@@ -548,6 +572,7 @@
         
         // 激活下載按鈕
         UI.downloadBtn.classList.add('active'); 
+        UI.reportBtn.classList.add('active'); 
         
         UI.placeholder.style.display = 'none';
         UI.img.style.display = 'block';
@@ -617,20 +642,8 @@
             
             if(!counts[d.category]) counts[d.category]=0;
             counts[d.category]++;
-            let seq = String(counts[d.category]).padStart(3,'0');
             
-            let parts = [d.category];
-            tags.forEach(t => { if(d.tags.has(t.name)) parts.push(t.name); });
-            
-            let ext = d.originalName.split('.').pop();
-            let finalName = "";
-            
-            if(d.isAuto !== false) { 
-                finalName = `${parts.join('_')}_${seq}.${ext}`;
-            } else { 
-                let cust = d.customName || "名稱";
-                finalName = `${parts.join('_')}_${cust}.${ext}`;
-            }
+            let finalName = generateFilename(d, counts[d.category]);
             bat += `move "${d.originalName}" "${d.category}\\${finalName}"\r\n`;
         });
         bat += "\r\necho 整理完成！\r\npause";
@@ -641,9 +654,117 @@
         link.download = "開始整理.bat";
         link.click();
     }
+
+    // --- Export HTML Report ---
+    function exportReport() {
+        if(isDemoMode) { alert("請先載入真實照片！"); return; }
+        if(!files.length) return;
+
+        let html = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <title>照片報告草稿</title>
+            <style>
+                body { font-family: "Microsoft JhengHei", "PMingLiU", sans-serif; padding: 20px; }
+                h2 { color: #0d6efd; border-bottom: 2px solid #0d6efd; padding-bottom: 5px; margin-top: 30px; }
+                table { border-collapse: collapse; width: 100%; margin-bottom: 20px; }
+                td { border: 1px solid #ccc; padding: 15px; text-align: center; vertical-align: top; width: 50%; background: #fff; }
+                img { max-width: 95%; height: auto; display: block; margin: 0 auto 10px auto; border: 1px solid #eee; }
+                .caption { 
+                    color: #000; 
+                    font-size: 14px; 
+                    font-weight: bold; 
+                    margin-top: 8px;
+                    font-family: "Microsoft JhengHei", sans-serif; 
+                }
+                .note { background: #fff3cd; color: #856404; padding: 15px; margin-bottom: 20px; border: 1px solid #ffeeba; border-radius: 5px; }
+            </style>
+        </head>
+        <body>
+            <div class="note">
+                <strong>💡 操作說明：</strong><br>
+                1. 請確認已執行過 <b>「開始整理.bat」</b>。<br>
+                2. <b>Ctrl + A</b> (全選) ➔ <b>Ctrl + C</b> (複製) ➔ Word <b>Ctrl + V</b> (貼上)。
+            </div>
+        `;
+
+        let globalCounts = {};
+        
+        categories.forEach(cat => {
+            let catPhotos = fileData.filter(d => !d.isDeleted && d.category === cat.name);
+            
+            if (catPhotos.length > 0) {
+                html += `<h2>${cat.name}</h2>`;
+                html += `<table>`;
+
+                let rowCount = 0;
+                catPhotos.forEach((d, index) => {
+                    if(!globalCounts[d.category]) globalCounts[d.category]=0;
+                    globalCounts[d.category]++;
+                    
+                    let finalName = generateFilename(d, globalCounts[d.category]);
+                    let ext = d.originalName.split('.').pop();
+                    let captionText = finalName.replace('.'+ext, '');
+                    let relPath = `${d.category}/${finalName}`;
+
+                    if (index % 2 === 0) html += "<tr>";
+                    html += `
+                        <td>
+                            <img src="${relPath}" width="350">
+                            <div class="caption">${captionText}</div>
+                        </td>
+                    `;
+                    if (index % 2 === 1) html += "</tr>";
+                    rowCount = index;
+                });
+
+                if (rowCount % 2 === 0) html += "<td></td></tr>";
+                html += `</table>`;
+            }
+        });
+
+        let otherPhotos = fileData.filter(d => !d.isDeleted && d.category && !categories.some(c => c.name === d.category));
+        
+        if (otherPhotos.length > 0) {
+            let otherGroups = {};
+            otherPhotos.forEach(d => {
+                if(!otherGroups[d.category]) otherGroups[d.category] = [];
+                otherGroups[d.category].push(d);
+            });
+
+            for (let catName in otherGroups) {
+                html += `<h2>${catName} (其他)</h2><table>`;
+                let group = otherGroups[catName];
+                let rowCount = 0;
+                group.forEach((d, index) => {
+                    if(!globalCounts[d.category]) globalCounts[d.category]=0;
+                    globalCounts[d.category]++;
+                    
+                    let finalName = generateFilename(d, globalCounts[d.category]);
+                    let ext = d.originalName.split('.').pop();
+                    let captionText = finalName.replace('.'+ext, '');
+                    let relPath = `${d.category}/${finalName}`;
+
+                    if (index % 2 === 0) html += "<tr>";
+                    html += `<td><img src="${relPath}" width="350"><div class="caption">${captionText}</div></td>`;
+                    if (index % 2 === 1) html += "</tr>";
+                    rowCount = index;
+                });
+                if (rowCount % 2 === 0) html += "<td></td></tr>";
+                html += `</table>`;
+            }
+        }
+
+        html += `</body></html>`;
+
+        const blob = new Blob([html], {type: 'text/html;charset=utf-8'});
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = "報告用_草稿.html";
+        link.click();
+    }
 </script>
-<style>
-@keyframes shake { 0% {transform: translateX(0);} 25% {transform: translateX(-5px);} 50% {transform: translateX(5px);} 75% {transform: translateX(-5px);} 100% {transform: translateX(0);} }
-</style>
 </body>
 </html>
