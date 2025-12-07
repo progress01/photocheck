@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>照片歸檔神器 v8.2 (防誤觸優化版)</title>
+    <title>照片歸檔神器 v8.6 (智慧命名版)</title>
     <style>
         :root { --primary: #0d6efd; --purple: #6610f2; --success: #198754; --warning: #ffc107; --danger: #dc3545; --bg: #f8f9fa; --overlay-bg: rgba(0,0,0,0.85); }
         body { font-family: "Microsoft JhengHei", "Segoe UI", sans-serif; margin: 0; padding: 20px; background: var(--bg); color: #333; height: 100vh; box-sizing: border-box; display: flex; flex-direction: column; overflow: hidden; }
@@ -25,10 +25,7 @@
         .view-fit img { max-width: 95%; max-height: 95%; object-fit: contain; }
         .view-fill img { width: 100%; height: 100%; object-fit: cover; }
         .view-small img { max-width: 60%; max-height: 60%; object-fit: contain; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
-        .view-1to1 { overflow: auto; align-items: flex-start; justify-content: flex-start; cursor: grab; }
-        .view-1to1 img { max-width: none; max-height: none; width: auto; height: auto; }
-        .view-1to1:active { cursor: grabbing; }
-
+        
         /* 視圖切換按鈕 */
         .view-controls { position: absolute; top: 15px; left: 50%; transform: translateX(-50%); display: flex; gap: 5px; z-index: 30; background: rgba(0,0,0,0.6); padding: 5px; border-radius: 20px; backdrop-filter: blur(4px); }
         .view-btn { background: transparent; border: 1px solid rgba(255,255,255,0.3); color: white; padding: 4px 12px; font-size: 12px; cursor: pointer; border-radius: 15px; transition: 0.2s; }
@@ -146,7 +143,6 @@
         .add-btn:hover { background: #e9ecef; }
         .save-btn { background: var(--primary); color: white; padding: 10px; border: none; border-radius: 6px; width: 100%; margin-top: 15px; font-weight: bold; cursor: pointer; }
         
-        /* v8.2 刪除按鈕優化 */
         .icon-btn { 
             width: 32px; height: 32px; border-radius: 50%; border: none; 
             display: flex; align-items: center; justify-content: center; 
@@ -155,7 +151,6 @@
         .btn-del { background: #fee2e2; color: #dc3545; margin-left: auto; }
         .btn-del:hover { background: #dc3545; color: white; }
 
-        /* 原理圖解與警告 */
         .bat-diagram { display: flex; gap: 10px; background: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px dashed #ccc; text-align: center; font-size: 13px; }
         .bat-step { flex: 1; } .bat-icon { font-size: 1.8rem; display: block; }
         .win-alert { border: 1px solid #d9d9d9; background: white; margin: 15px 0; box-shadow: 0 2px 5px rgba(0,0,0,0.1); font-family: "Segoe UI", sans-serif; }
@@ -168,9 +163,9 @@
 <body>
 
 <div class="navbar">
-    <div class="nav-title">📷 照片歸檔神器 <span style="font-size:0.8em; font-weight:normal;">v8.2</span></div>
+    <div class="nav-title">📷 照片歸檔神器 <span style="font-size:0.8em; font-weight:normal;">v8.6</span></div>
     <div style="display:flex; gap:10px; align-items:center;">
-        <button class="tool-btn" onclick="rotateImage()">⟳ 轉向 (R)</button>
+        <button class="tool-btn" onclick="rotateImage()">⟳ 轉向 (僅預覽)</button>
         <button class="btn-help" onclick="openHelpModal('tab1')">❓ 教學</button>
         <label for="folderInput" id="uploadBtn" class="btn-upload" onclick="return checkUpload()"><span>📂 選擇資料夾</span></label>
         <input type="file" id="folderInput" webkitdirectory directory multiple style="display:none;">
@@ -182,7 +177,6 @@
         <div class="view-controls" id="viewControls">
             <button class="view-btn active" onclick="changeView('fit')">完整 (Fit)</button>
             <button class="view-btn" onclick="changeView('small')">小圖 (Focus)</button>
-            <button class="view-btn" onclick="changeView('1to1')">1:1</button>
         </div>
 
         <div class="image-container view-fit" id="imgContainer">
@@ -219,7 +213,10 @@
         </div>
 
         <div class="naming-control" id="namingSection">
-            <div class="section-header" style="border:none; margin-bottom:5px;">✏️ 命名規則 (可自訂)</div>
+            <div class="section-header" style="border:none; margin-bottom:5px;">
+                ✏️ 命名規則 (可自訂)
+                <span style="font-size:0.8em; font-weight:normal; color:#888; margin-left:5px;">按 F2 快速切換</span>
+            </div>
             <div class="toggle-row">
                 <span style="font-size:14px; font-weight:bold; color:#555;">自動流水號 (_001)</span>
                 <label class="switch">
@@ -228,7 +225,7 @@
                 </label>
             </div>
             <div class="input-wrapper" style="display:flex; align-items:center;">
-                <input type="text" id="customInput" class="custom-input" placeholder="輸入自訂檔名..." disabled oninput="onCustomInputChange(this)">
+                <input type="text" id="customInput" class="custom-input" placeholder="輸入自訂檔名... (F2)" disabled oninput="onCustomInputChange(this)">
             </div>
             <div class="input-wrapper" style="margin-top:10px; display:flex; align-items:center; justify-content:space-between; font-size:14px; color:#555;">
                 <span>🔢 流水號起始值：</span>
@@ -291,16 +288,9 @@
                 <ul style="line-height:2;">
                     <li><b>步驟 1 (整理)：</b>點擊「📂 選擇資料夾」讀取照片。</li>
                     <li><b>步驟 2 (歸檔)：</b>用鍵盤分類、刪除、命名照片。</li>
-                    <li><b>步驟 3 (檢視)：</b>利用上方按鈕切換「完整/小圖/1:1」模式。</li>
-                    <li><b>步驟 4 (執行)：</b>按「⚡ 下載整理執行檔 (.bat)」，並執行它。</li>
-                    <li><b>步驟 5 (參照)：</b>下載「參照表」，用來複製檔名貼到 Word。</li>
+                    <li><b>步驟 3 (執行)：</b>按「⚡ 下載整理執行檔 (.bat)」，並執行它。</li>
+                    <li><b>步驟 4 (參照)：</b>下載「參照表」，用來複製檔名貼到 Word。</li>
                 </ul>
-            </div>
-            <div class="help-section">
-                <div class="help-title">大批量分批作業技巧</div>
-                <p>若照片高達 1000 張，建議分批處理（例如一次 300 張）。</p>
-                <p><b>如何避免檔名重複？</b><br>
-                在左側設定 <b>「🔢 流水號起始值」</b>。例如第一批做完 300 張，第二批請將起始值設為 <b>301</b>，這樣檔名就會從 <code>_301</code> 開始，不會覆蓋舊檔案。</p>
             </div>
         </div>
         <div id="tab2" class="modal-body">
@@ -355,6 +345,9 @@
     let rotationDeg = 0;
     let isLocked = false;
     let currentViewMode = 'fit';
+    
+    // v8.4: 智慧開關記憶變數 (預設 true)
+    let currentAutoState = true;
 
     // --- DOM ---
     const UI = {
@@ -464,7 +457,7 @@
         UI.img.style.transform = `rotate(${rotationDeg}deg)`;
     }
 
-    // --- 視圖切換邏輯 ---
+    // --- 視圖切換邏輯 (移除了 1:1) ---
     function changeView(mode) {
         currentViewMode = mode;
         
@@ -472,42 +465,33 @@
         document.querySelectorAll('.view-btn').forEach(btn => btn.classList.remove('active'));
         if(mode==='fit') document.querySelectorAll('.view-btn')[0].classList.add('active');
         if(mode==='small') document.querySelectorAll('.view-btn')[1].classList.add('active');
-        if(mode==='1to1') document.querySelectorAll('.view-btn')[2].classList.add('active');
 
         // 更新容器 Class
         UI.imgContainer.className = 'image-container'; // reset
         UI.imgContainer.classList.add(`view-${mode}`);
     }
 
-    // 1to1 模式拖曳功能
-    let isDragging = false, startX, startY, scrollLeft, scrollTop;
-    UI.imgContainer.addEventListener('mousedown', (e) => {
-        if(currentViewMode !== '1to1') return;
-        isDragging = true;
-        startX = e.pageX - UI.imgContainer.offsetLeft;
-        startY = e.pageY - UI.imgContainer.offsetTop;
-        scrollLeft = UI.imgContainer.scrollLeft;
-        scrollTop = UI.imgContainer.scrollTop;
-    });
-    UI.imgContainer.addEventListener('mouseleave', () => { isDragging = false; });
-    UI.imgContainer.addEventListener('mouseup', () => { isDragging = false; });
-    UI.imgContainer.addEventListener('mousemove', (e) => {
-        if(!isDragging) return;
-        e.preventDefault();
-        const x = e.pageX - UI.imgContainer.offsetLeft;
-        const y = e.pageY - UI.imgContainer.offsetTop;
-        const walkX = (x - startX) * 1; 
-        const walkY = (y - startY) * 1;
-        UI.imgContainer.scrollLeft = scrollLeft - walkX;
-        UI.imgContainer.scrollTop = scrollTop - walkY;
-    });
-
-    // --- 命名控制邏輯 ---
+    // --- 命名控制邏輯 (v8.6: 智慧自動填入) ---
     function toggleNamingMode() {
         let data = getData();
         data.isAuto = UI.autoSeqCheck.checked;
         
-        updateUI(); // 先更新 UI 狀態
+        // 更新全域記憶變數
+        currentAutoState = data.isAuto;
+
+        // --- ⭐ v8.6 新增: 智慧自動代入檔名 ---
+        if (!data.isAuto) {
+            // 條件：沒有分類 AND 沒有標籤 AND 目前自訂名稱是空的
+            if (!data.category && data.tags.size === 0 && !data.customName) {
+                // 取得原始檔名，並去除副檔名
+                let nameWithoutExt = data.originalName.replace(/\.[^/.]+$/, "");
+                data.customName = nameWithoutExt;
+                UI.customInput.value = nameWithoutExt;
+            }
+        }
+        // --- 結束 ---
+
+        updateUI(); 
         if (!data.isAuto) {
             setTimeout(() => { UI.customInput.focus(); }, 50);
         }
@@ -521,17 +505,19 @@
         updateUI();
     }
 
-    // --- 共用檔名生成 ---
+    // --- 共用檔名生成 (含安全過濾) ---
     function generateFilename(d, seqNum) {
-        let parts = [d.category];
-        tags.forEach(t => { if(d.tags.has(t.name)) parts.push(t.name); });
+        let safeCategory = d.category ? d.category.replace(/[\\/:*?"<>|]/g, '_') : "_未分類";
+        let parts = [safeCategory];
+        
+        tags.forEach(t => { 
+            if(d.tags.has(t.name)) parts.push(t.name.replace(/[\\/:*?"<>|]/g, '_')); 
+        });
 
         let ext = "jpg"; 
         if(d.originalName) ext = d.originalName.split('.').pop().toLowerCase(); 
         
         let finalName = "";
-        
-        // 取得使用者設定的起始值 (預設為 1)
         let startOffset = parseInt(UI.startSeqInput.value) || 1;
         
         if(d.isAuto !== false) { 
@@ -557,7 +543,6 @@
         UI.customInput.value = data.customName || "";
         UI.customInput.disabled = UI.autoSeqCheck.checked;
         
-        // 資訊儀表板更新
         if(!isDemoMode) {
             UI.infoFilename.textContent = data.originalName;
             UI.infoProgress.textContent = `進度: ${currentIndex + 1} / ${files.length}`;
@@ -582,7 +567,8 @@
             }
             
             let finalName = generateFilename(data, seqNum);
-            UI.preview.textContent = `存檔為: ${data.category}\\${finalName}`;
+            let safeCat = data.category.replace(/[\\/:*?"<>|]/g, '_');
+            UI.preview.textContent = `存檔為: ${safeCat}\\${finalName}`;
             UI.preview.style.color = "#333";
         }
     }
@@ -591,6 +577,14 @@
     document.addEventListener('keydown', (e) => {
         if (UI.welcomeOverlay.style.display !== 'none') return;
         if (UI.helpModal.style.display === 'flex' || UI.settingsModal.style.display === 'flex') return;
+        
+        if(e.key === "F2") {
+            e.preventDefault();
+            UI.autoSeqCheck.checked = !UI.autoSeqCheck.checked;
+            toggleNamingMode();
+            return;
+        }
+
         if (document.activeElement === UI.customInput || document.activeElement === UI.startSeqInput) { 
             if(e.key === "Enter") nextImage(); 
             return; 
@@ -665,7 +659,15 @@
 
     // --- 真實檔案 ---
     document.getElementById('folderInput').addEventListener('change', function(e) {
-        files = Array.from(e.target.files).filter(f => f.type.startsWith('image/'));
+        // v8.6: 增加 HEIC 檢查
+        let tempFiles = Array.from(e.target.files);
+        let hasHeic = tempFiles.some(f => f.name.toLowerCase().endsWith('.heic'));
+        
+        if(hasHeic) {
+            alert("⚠️ 偵測到 .HEIC 格式照片！\n\nWindows 瀏覽器不支援直接預覽此格式，您可能會看到全黑或破損的圖片。\n建議先將 iPhone 照片轉為 JPG 後再使用。");
+        }
+
+        files = tempFiles.filter(f => f.type.startsWith('image/') || f.name.toLowerCase().endsWith('.heic'));
         if (!files.length) { alert("沒有圖片！"); return; }
         
         fileData = files.map(f => ({ originalName: f.name, category: null, tags: new Set(), isDeleted: false, isAuto: true, customName: "" }));
@@ -675,7 +677,6 @@
         
         currentIndex = 0; 
         
-        // 激活下載按鈕
         UI.downloadBtn.classList.add('active'); 
         UI.reportBtn.classList.add('active'); 
         
@@ -693,6 +694,13 @@
         img.src = URL.createObjectURL(files[currentIndex]);
         
         img.style.transform = "rotate(0deg)"; rotationDeg = 0;
+        
+        // v8.4: 智慧狀態繼承
+        let d = fileData[currentIndex];
+        if(d.customName === "" && d.isAuto === true) {
+            d.isAuto = currentAutoState;
+        }
+
         updateUI();
     }
     function nextImage() {
@@ -717,7 +725,6 @@
     }
     function openSettings() {
         const cBody = document.getElementById('catSettingsBody'); cBody.innerHTML = '';
-        // v8.2 修正：產生刪除按鈕時，加上 class="icon-btn btn-del" 並設定 event.stopPropagation()
         categories.forEach((c,i) => cBody.innerHTML += `<tr><td><input class="settings-input" value="${c.name}" onchange="categories[${i}].name=this.value"></td><td><input class="settings-input key-input" value="${c.key}" onchange="categories[${i}].key=this.value" maxlength="1"></td><td><button class="icon-btn btn-del" onclick="event.stopPropagation(); categories.splice(${i},1); openSettings()">×</button></td></tr>`);
         
         const tBody = document.getElementById('tagSettingsBody'); tBody.innerHTML = '';
@@ -733,7 +740,7 @@
     function addCatRow() { categories.push({name:"", key:""}); openSettings(); }
     function addTagRow() { tags.push({name:"", key:""}); openSettings(); }
 
-    // --- Export BAT ---
+    // --- Export BAT (v8.5 優化: 增加防呆與過濾) ---
     function exportBat() {
         if(isDemoMode) { alert("請先載入真實照片！"); return; }
         if(!files.length) return;
@@ -741,8 +748,9 @@
         
         let folders = new Set(); folders.add("_TRASH");
         
-        // 先建立正常分類的資料夾
-        fileData.forEach(d => { if(d.category && !d.isDeleted) folders.add(d.category); });
+        fileData.forEach(d => { 
+            if(d.category && !d.isDeleted) folders.add(d.category.replace(/[\\/:*?"<>|]/g, '_')); 
+        });
         folders.forEach(f => bat += `if not exist "${f}" md "${f}"\r\n`);
         bat += "\r\n";
 
@@ -765,11 +773,18 @@
                 return;
             }
             
+            let safeCat = d.category.replace(/[\\/:*?"<>|]/g, '_');
+            
             if(!counts[d.category]) counts[d.category]=0;
             counts[d.category]++;
             
             let finalName = generateFilename(d, counts[d.category]);
-            bat += `move "${d.originalName}" "${d.category}\\${finalName}"\r\n`;
+            
+            bat += `if not exist "${safeCat}\\${finalName}" (\r\n`;
+            bat += `  move "${d.originalName}" "${safeCat}\\${finalName}"\r\n`;
+            bat += `) else (\r\n`;
+            bat += `  echo [略過] 檔案已存在: "${safeCat}\\${finalName}"\r\n`;
+            bat += `)\r\n`;
         });
         
         bat += `\r\necho 整理完成！ (含 ${unsortedCount} 張未分類)\r\npause`;
@@ -781,24 +796,24 @@
         link.click();
     }
 
-    // --- Export Minimalist Reference List ---
+    // --- Export Report ---
     function exportReport() {
         if(isDemoMode) { alert("請先載入真實照片！"); return; }
         if(!files.length) return;
 
-        // 注入 JS 腳本實現點擊複製
         let script = `
         <script>
             function copyText(el) {
-                let text = el.innerText;
+                let text = el.innerText.trim();
                 navigator.clipboard.writeText(text).then(() => {
-                    let originalText = el.innerText;
+                    let originalText = el.getAttribute('data-text') || text;
+                    el.setAttribute('data-text', originalText);
                     el.classList.add('copied');
-                    el.innerText = '✅ 已複製';
+                    el.innerHTML = '✅ 已複製';
                     setTimeout(() => {
-                        el.classList.remove('copied');
-                        el.innerText = originalText;
-                    }, 1000);
+                        el.innerHTML = '✔ ' + originalText; 
+                        el.classList.add('checked');
+                    }, 800);
                 });
             }
         <\/script>
@@ -809,77 +824,80 @@
         <html>
         <head>
             <meta charset="UTF-8">
-            <title>檔案參照表 (點擊複製)</title>
+            <title>照片對照表 (雙欄版)</title>
             <style>
-                body { font-family: "Microsoft JhengHei", sans-serif; padding: 20px; background: #f8f9fa; }
-                .container { max-width: 900px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-                h2 { color: #555; border-bottom: 2px solid #ddd; padding-bottom: 5px; margin-top: 30px; }
-                table { border-collapse: collapse; width: 100%; margin-bottom: 20px; }
-                th { background: #eee; padding: 8px; text-align: left; color:#666; font-size:14px; }
-                td { border-bottom: 1px solid #eee; padding: 8px; vertical-align: middle; }
-                
-                .index-col { width: 40px; color: #999; font-size: 13px; text-align: center; }
-                .thumb { width: 80px; height: 60px; object-fit: cover; border-radius: 4px; border: 1px solid #ddd; display:block; }
-                
-                /* 按鈕樣式 */
-                .copy-btn { 
-                    display: inline-block; padding: 8px 15px; 
-                    background: #e7f1ff; color: #0d6efd; 
-                    border: 1px solid #b6d4fe; border-radius: 4px; 
-                    font-weight: bold; cursor: pointer; user-select: none; transition: 0.2s;
-                    min-width: 200px; text-align: center;
+                body { font-family: "Microsoft JhengHei", "Segoe UI", sans-serif; padding: 20px; background: #f0f0f0; }
+                .container { max-width: 1000px; margin: 0 auto; background: white; padding: 40px; box-shadow: 0 0 20px rgba(0,0,0,0.1); min-height: 100vh; }
+                h1 { text-align: center; border-bottom: 3px solid #333; padding-bottom: 20px; margin-bottom: 30px; }
+                h2 { background: #333; color: white; padding: 10px; margin-top: 40px; border-radius: 4px; }
+                .photo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+                .photo-card { border: 2px solid #000; display: flex; flex-direction: column; background: white; break-inside: avoid; }
+                .card-header { 
+                    padding: 10px; background: white; border-bottom: 2px solid #000; 
+                    text-align: center; font-weight: bold; font-size: 16px; 
+                    cursor: pointer; transition: 0.2s; user-select: none;
                 }
-                .copy-btn:hover { background: #0d6efd; color: white; }
-                .copy-btn:active { transform: scale(0.98); }
-                .copy-btn.copied { background: #198754; color: white; border-color: #198754; pointer-events: none; }
-                
-                .note { background: #e2e3e5; color: #383d41; padding: 10px; margin-bottom: 20px; border-radius: 5px; font-size: 14px; }
+                .card-header:hover { background: #e7f1ff; color: #0d6efd; }
+                .card-header.copied { background: #198754; color: white !important; }
+                .card-header.checked { color: #198754; background: #f0fff4; }
+                .img-box { 
+                    width: 100%; height: 300px; 
+                    display: flex; align-items: center; justify-content: center; 
+                    overflow: hidden; background: #eee;
+                }
+                .img-box img { width: 100%; height: 100%; object-fit: contain; }
+                .note-box { border-top: 1px solid #ccc; padding: 5px; background: #fff; }
+                .note-input { 
+                    width: 100%; border: none; outline: none; resize: none; 
+                    font-family: inherit; font-size: 13px; color: #666; height: 30px; 
+                    background: transparent;
+                }
+                .note-input::placeholder { color: #ddd; font-style: italic; }
+                @media print {
+                    body { background: white; padding: 0; }
+                    .container { box-shadow: none; max-width: 100%; padding: 20px; }
+                    h2 { background: transparent; color: black; border-bottom: 2px solid black; padding-left: 0; }
+                    .card-header { border-bottom: 1px solid #000; }
+                    .photo-card { border: 1px solid #000; }
+                    .note-input { display: block; }
+                }
             </style>
             ${script}
         </head>
         <body>
             <div class="container">
-                <h1>📄 檔案參照表 (點擊複製)</h1>
-                <div class="note">
-                    <strong>💡 使用方式：</strong><br>
-                    在 Word 插入圖片後，點擊下方的 <b>藍色按鈕</b> 複製檔名，然後直接貼上。
+                <h1>📄 現場照片對照表</h1>
+                <div class="important-box" style="background:#fff3cd; padding:10px; margin-bottom:20px; border:1px solid #ffeeba;">
+                    ⚠️ 請先執行 <b>.bat</b> 檔案歸檔照片後，此表圖片才能正常顯示。
                 </div>
         `;
 
         let globalCounts = {};
-        
-        // 依照分類顯示
         categories.forEach(cat => {
             let catPhotos = fileData.filter(d => !d.isDeleted && d.category === cat.name);
-            
             if (catPhotos.length > 0) {
-                html += `<h2>📂 ${cat.name}</h2>`;
-                html += `<table><thead><tr><th class="index-col">#</th><th width="100">縮圖</th><th>點擊按鈕複製檔名</th></tr></thead><tbody>`;
-
-                let rowNum = 1;
+                html += `<h2>📂 ${cat.name}</h2><div class="photo-grid">`;
                 catPhotos.forEach((d) => {
                     if(!globalCounts[d.category]) globalCounts[d.category]=0;
                     globalCounts[d.category]++;
-                    
                     let finalName = generateFilename(d, globalCounts[d.category]);
+                    
+                    let safeCat = d.category.replace(/[\\/:*?"<>|]/g, '_');
+                    
                     let ext = d.originalName.split('.').pop().toLowerCase();
                     let captionText = finalName.replace('.'+ext, '');
-                    let relPath = `${d.category}/${finalName}`;
-
+                    let relPath = `${safeCat}/${finalName}`;
                     html += `
-                        <tr>
-                            <td class="index-col">${rowNum++}</td>
-                            <td><img src="${relPath}" class="thumb" loading="lazy"></td>
-                            <td>
-                                <div class="copy-btn" onclick="copyText(this)">${captionText}</div>
-                            </td>
-                        </tr>
+                        <div class="photo-card">
+                            <div class="card-header" onclick="copyText(this)">${captionText}</div>
+                            <div class="img-box"><img src="${relPath}" loading="lazy" alt="圖片"></div>
+                            <div class="note-box"><textarea class="note-input" placeholder="在此輸入備註..."></textarea></div>
+                        </div>
                     `;
                 });
-                html += `</tbody></table>`;
+                html += `</div>`;
             }
         });
-
         html += `</div></body></html>`;
 
         const blob = new Blob([html], {type: 'text/html;charset=utf-8'});
