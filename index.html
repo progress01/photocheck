@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>照片歸檔神器 v8.9 (原地改名版)</title>
+    <title>照片歸檔神器 v8.10 (原地改名完美版)</title>
     <style>
         :root { --primary: #0d6efd; --purple: #6610f2; --success: #198754; --warning: #ffc107; --danger: #dc3545; --bg: #f8f9fa; --overlay-bg: rgba(0,0,0,0.85); }
         body { font-family: "Microsoft JhengHei", "Segoe UI", sans-serif; margin: 0; padding: 20px; background: var(--bg); color: #333; height: 100vh; box-sizing: border-box; display: flex; flex-direction: column; overflow: hidden; }
@@ -163,7 +163,7 @@
 <body>
 
 <div class="navbar">
-    <div class="nav-title">📷 照片歸檔神器 <span style="font-size:0.8em; font-weight:normal;">v8.9</span></div>
+    <div class="nav-title">📷 照片歸檔神器 <span style="font-size:0.8em; font-weight:normal;">v8.10</span></div>
     <div style="display:flex; gap:10px; align-items:center;">
         <button class="tool-btn" onclick="rotateImage()">⟳ 轉向 (僅預覽)</button>
         <button class="btn-help" onclick="openHelpModal('tab1')">❓ 教學</button>
@@ -303,7 +303,8 @@
                     ├── 📄 參照表.html (產生檔)<br>
                     ├── 📂 會議記錄 (歸檔後)<br>
                     ├── 📂 現場照片 (歸檔後)<br>
-                    └── 📂 _未分類 (被跳過的照片)
+                    └── 📄 新檔名_001.jpg (原地改名)<br>
+                    └── 📂 _TRASH (刪除的照片)
                 </div>
             </div>
         </div>
@@ -559,16 +560,28 @@
             UI.preview.textContent = "🗑️ 將移至回收桶";
             UI.preview.style.color = "#dc3545";
         } else {
-            // ⭐ v8.8 修改：移除「請選擇分類」的阻擋，允許顯示預覽
+            // ⭐ v8.10 修正：現在未分類也會計算流水號，避免全部顯示為 001
             let seqNum = 1;
-            if(!isDemoMode && data.category) {
-                seqNum = 0;
-                for(let i=0; i<=currentIndex; i++) {
-                    if(fileData[i].category === data.category && !fileData[i].isDeleted) {
-                        seqNum++;
+            if(!isDemoMode) {
+                // 如果有分類，計算該分類的序號
+                if(data.category) {
+                    seqNum = 0;
+                    for(let i=0; i<=currentIndex; i++) {
+                        if(fileData[i].category === data.category && !fileData[i].isDeleted) {
+                            seqNum++;
+                        }
                     }
+                    if(seqNum === 0) seqNum = 1;
+                } else {
+                    // 如果沒分類，計算「未分類」的序號
+                    seqNum = 0;
+                    for(let i=0; i<=currentIndex; i++) {
+                        if(!fileData[i].category && !fileData[i].isDeleted) {
+                            seqNum++;
+                        }
+                    }
+                    if(seqNum === 0) seqNum = 1;
                 }
-                if(seqNum === 0) seqNum = 1;
             }
             
             let finalName = generateFilename(data, seqNum);
@@ -759,7 +772,7 @@
     function addCatRow() { categories.push({name:"", key:""}); openSettings(); }
     function addTagRow() { tags.push({name:"", key:""}); openSettings(); }
 
-    // --- Export BAT (v8.9: 修正未分類的原地改名邏輯) ---
+    // --- Export BAT (v8.10: 修正未分類的原地改名 + 流水號邏輯) ---
     function exportBat() {
         if(isDemoMode) { alert("請先載入真實照片！"); return; }
         if(!files.length) return;
@@ -775,6 +788,7 @@
 
         let counts = {};
         let unsortedCount = 0;
+        let noCatSeq = 0; // ⭐ v8.10 新增：未分類的獨立流水號計數器
         
         fileData.forEach(d => {
             if(d.isDeleted) { 
@@ -782,15 +796,15 @@
                 return; 
             }
             
-            // ⭐ v8.9 修正：不建立 _未分類 資料夾，而是原地更名
             let safeCat = "";
             let finalName = "";
-            let targetPath = ""; // 最終完整路徑
+            let targetPath = "";
 
             if(!d.category) {
-                // 沒有分類 = 留在原地 (targetPath 就是檔名)
+                // 未分類 = 原地改名
                 unsortedCount++;
-                finalName = generateFilename(d, 1);
+                noCatSeq++; // 累加未分類的計數
+                finalName = generateFilename(d, noCatSeq); // 傳入計數
                 targetPath = finalName;
             } else {
                 // 有分類 = 移入資料夾
@@ -808,7 +822,7 @@
             bat += `)\r\n`;
         });
         
-        bat += `\r\necho 整理完成！ (含 ${unsortedCount} 張原地改名/未分類)\r\npause`;
+        bat += `\r\necho 整理完成！ (含 ${unsortedCount} 張原地改名)\r\npause`;
         
         const blob = new Blob([bat], {type: 'text/plain;charset=utf-8'});
         const link = document.createElement("a");
@@ -893,6 +907,7 @@
                 </div>
         `;
 
+        // 1. 先顯示有分類的
         let globalCounts = {};
         categories.forEach(cat => {
             let catPhotos = fileData.filter(d => !d.isDeleted && d.category === cat.name);
@@ -919,6 +934,32 @@
                 html += `</div>`;
             }
         });
+
+        // ⭐ v8.10 新增：顯示未分類 (原地保留) 的照片
+        let uncategorized = fileData.filter(d => !d.isDeleted && !d.category);
+        if (uncategorized.length > 0) {
+            html += `<h2>📂 未分類 / 原地保留</h2><div class="photo-grid">`;
+            let uncatCount = 0;
+            uncategorized.forEach((d) => {
+                uncatCount++;
+                let finalName = generateFilename(d, uncatCount);
+                
+                let ext = d.originalName.split('.').pop().toLowerCase();
+                let captionText = finalName.replace('.'+ext, '');
+                // 原地保留的照片，路徑就是檔名 (因為 html 和照片在同一層)
+                let relPath = finalName; 
+
+                html += `
+                    <div class="photo-card">
+                        <div class="card-header" onclick="copyText(this)">${captionText}</div>
+                        <div class="img-box"><img src="${relPath}" loading="lazy" alt="圖片"></div>
+                        <div class="note-box"><textarea class="note-input" placeholder="在此輸入備註..."></textarea></div>
+                    </div>
+                `;
+            });
+            html += `</div>`;
+        }
+
         html += `</div></body></html>`;
 
         const blob = new Blob([html], {type: 'text/html;charset=utf-8'});
