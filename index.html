@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>照片歸檔神器 v8.6 (智慧命名版)</title>
+    <title>照片歸檔神器 </title>
     <style>
         :root { --primary: #0d6efd; --purple: #6610f2; --success: #198754; --warning: #ffc107; --danger: #dc3545; --bg: #f8f9fa; --overlay-bg: rgba(0,0,0,0.85); }
         body { font-family: "Microsoft JhengHei", "Segoe UI", sans-serif; margin: 0; padding: 20px; background: var(--bg); color: #333; height: 100vh; box-sizing: border-box; display: flex; flex-direction: column; overflow: hidden; }
@@ -163,7 +163,7 @@
 <body>
 
 <div class="navbar">
-    <div class="nav-title">📷 照片歸檔神器 <span style="font-size:0.8em; font-weight:normal;">v8.6</span></div>
+    <div class="nav-title">📷 照片歸檔神器 <span style="font-size:0.8em; font-weight:normal;">v8.7</span></div>
     <div style="display:flex; gap:10px; align-items:center;">
         <button class="tool-btn" onclick="rotateImage()">⟳ 轉向 (僅預覽)</button>
         <button class="btn-help" onclick="openHelpModal('tab1')">❓ 教學</button>
@@ -457,7 +457,7 @@
         UI.img.style.transform = `rotate(${rotationDeg}deg)`;
     }
 
-    // --- 視圖切換邏輯 (移除了 1:1) ---
+    // --- 視圖切換邏輯 ---
     function changeView(mode) {
         currentViewMode = mode;
         
@@ -471,7 +471,7 @@
         UI.imgContainer.classList.add(`view-${mode}`);
     }
 
-    // --- 命名控制邏輯 (v8.6: 智慧自動填入) ---
+    // --- 命名控制邏輯 ---
     function toggleNamingMode() {
         let data = getData();
         data.isAuto = UI.autoSeqCheck.checked;
@@ -479,7 +479,7 @@
         // 更新全域記憶變數
         currentAutoState = data.isAuto;
 
-        // --- ⭐ v8.6 新增: 智慧自動代入檔名 ---
+        // --- ⭐ v8.6: 智慧自動代入檔名 ---
         if (!data.isAuto) {
             // 條件：沒有分類 AND 沒有標籤 AND 目前自訂名稱是空的
             if (!data.category && data.tags.size === 0 && !data.customName) {
@@ -697,12 +697,22 @@
         
         // v8.4: 智慧狀態繼承
         let d = fileData[currentIndex];
+        
         if(d.customName === "" && d.isAuto === true) {
             d.isAuto = currentAutoState;
         }
 
+        // --- ⭐ v8.7 修正: 切換照片時也要檢查是否需要智慧代入 ---
+        // 邏輯: 自訂模式(!isAuto) 且 沒分類 且 沒標籤 且 沒名字
+        if (!d.isAuto && !d.category && d.tags.size === 0 && !d.customName) {
+            let nameWithoutExt = d.originalName.replace(/\.[^/.]+$/, "");
+            d.customName = nameWithoutExt;
+        }
+        // ------------------------------------------------
+
         updateUI();
     }
+
     function nextImage() {
         if(currentIndex < files.length - 1) {
             let prevCat = fileData[currentIndex].category;
@@ -740,7 +750,7 @@
     function addCatRow() { categories.push({name:"", key:""}); openSettings(); }
     function addTagRow() { tags.push({name:"", key:""}); openSettings(); }
 
-    // --- Export BAT (v8.5 優化: 增加防呆與過濾) ---
+    // --- Export BAT (v8.5 優化) ---
     function exportBat() {
         if(isDemoMode) { alert("請先載入真實照片！"); return; }
         if(!files.length) return;
