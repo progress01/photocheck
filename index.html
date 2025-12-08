@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>照片歸檔神器 </title>
+    <title>照片歸檔神器 v8.9 (原地改名版)</title>
     <style>
         :root { --primary: #0d6efd; --purple: #6610f2; --success: #198754; --warning: #ffc107; --danger: #dc3545; --bg: #f8f9fa; --overlay-bg: rgba(0,0,0,0.85); }
         body { font-family: "Microsoft JhengHei", "Segoe UI", sans-serif; margin: 0; padding: 20px; background: var(--bg); color: #333; height: 100vh; box-sizing: border-box; display: flex; flex-direction: column; overflow: hidden; }
@@ -163,7 +163,7 @@
 <body>
 
 <div class="navbar">
-    <div class="nav-title">📷 照片歸檔神器 <span style="font-size:0.8em; font-weight:normal;">v8.7</span></div>
+    <div class="nav-title">📷 照片歸檔神器 <span style="font-size:0.8em; font-weight:normal;">v8.9</span></div>
     <div style="display:flex; gap:10px; align-items:center;">
         <button class="tool-btn" onclick="rotateImage()">⟳ 轉向 (僅預覽)</button>
         <button class="btn-help" onclick="openHelpModal('tab1')">❓ 教學</button>
@@ -479,7 +479,7 @@
         // 更新全域記憶變數
         currentAutoState = data.isAuto;
 
-        // --- ⭐ v8.6: 智慧自動代入檔名 ---
+        // --- ⭐ v8.6/v8.7: 智慧自動代入檔名 ---
         if (!data.isAuto) {
             // 條件：沒有分類 AND 沒有標籤 AND 目前自訂名稱是空的
             if (!data.category && data.tags.size === 0 && !data.customName) {
@@ -505,10 +505,13 @@
         updateUI();
     }
 
-    // --- 共用檔名生成 (含安全過濾) ---
+    // --- ⭐ v8.8 檔名生成 (優化無分類邏輯) ---
     function generateFilename(d, seqNum) {
-        let safeCategory = d.category ? d.category.replace(/[\\/:*?"<>|]/g, '_') : "_未分類";
-        let parts = [safeCategory];
+        // 如果沒有分類，不回傳 _未分類，改回傳空字串 (避免檔名變成 _未分類_檔名)
+        let safeCategory = d.category ? d.category.replace(/[\\/:*?"<>|]/g, '_') : "";
+        
+        let parts = [];
+        if(safeCategory) parts.push(safeCategory);
         
         tags.forEach(t => { 
             if(d.tags.has(t.name)) parts.push(t.name.replace(/[\\/:*?"<>|]/g, '_')); 
@@ -524,9 +527,13 @@
             let actualSeq = seqNum + startOffset - 1;
             let seqStr = String(actualSeq).padStart(3,'0');
             finalName = `${parts.join('_')}_${seqStr}.${ext}`;
+            // 修正：如果 parts 為空 (沒分類沒標籤)，避免開頭出現 _
+            if(parts.length === 0) finalName = `${seqStr}.${ext}`;
         } else { 
             let cust = d.customName || "名稱";
-            finalName = `${parts.join('_')}_${cust}.${ext}`;
+            // 修正：如果 parts 為空，直接用自訂檔名
+            if(parts.length === 0) finalName = `${cust}.${ext}`;
+            else finalName = `${parts.join('_')}_${cust}.${ext}`;
         }
         return finalName;
     }
@@ -551,10 +558,8 @@
         if (data.isDeleted) {
             UI.preview.textContent = "🗑️ 將移至回收桶";
             UI.preview.style.color = "#dc3545";
-        } else if (!data.category) {
-            UI.preview.textContent = "請選擇主分類...";
-            UI.preview.style.color = "#666";
         } else {
+            // ⭐ v8.8 修改：移除「請選擇分類」的阻擋，允許顯示預覽
             let seqNum = 1;
             if(!isDemoMode && data.category) {
                 seqNum = 0;
@@ -567,8 +572,12 @@
             }
             
             let finalName = generateFilename(data, seqNum);
-            let safeCat = data.category.replace(/[\\/:*?"<>|]/g, '_');
-            UI.preview.textContent = `存檔為: ${safeCat}\\${finalName}`;
+            let safeCat = data.category ? data.category.replace(/[\\/:*?"<>|]/g, '_') : "";
+            
+            // ⭐ v8.9 修改：如果沒有分類，顯示當前目錄 ./
+            let prefix = safeCat ? `${safeCat}\\` : ".\\";
+
+            UI.preview.textContent = `存檔為: ${prefix}${finalName}`;
             UI.preview.style.color = "#333";
         }
     }
@@ -702,7 +711,7 @@
             d.isAuto = currentAutoState;
         }
 
-        // --- ⭐ v8.7 修正: 切換照片時也要檢查是否需要智慧代入 ---
+        // --- ⭐ v8.7: 切換照片時也要檢查是否需要智慧代入 ---
         // 邏輯: 自訂模式(!isAuto) 且 沒分類 且 沒標籤 且 沒名字
         if (!d.isAuto && !d.category && d.tags.size === 0 && !d.customName) {
             let nameWithoutExt = d.originalName.replace(/\.[^/.]+$/, "");
@@ -750,7 +759,7 @@
     function addCatRow() { categories.push({name:"", key:""}); openSettings(); }
     function addTagRow() { tags.push({name:"", key:""}); openSettings(); }
 
-    // --- Export BAT (v8.5 優化) ---
+    // --- Export BAT (v8.9: 修正未分類的原地改名邏輯) ---
     function exportBat() {
         if(isDemoMode) { alert("請先載入真實照片！"); return; }
         if(!files.length) return;
@@ -773,31 +782,33 @@
                 return; 
             }
             
+            // ⭐ v8.9 修正：不建立 _未分類 資料夾，而是原地更名
+            let safeCat = "";
+            let finalName = "";
+            let targetPath = ""; // 最終完整路徑
+
             if(!d.category) {
-                if(!folders.has("_未分類")) { 
-                    folders.add("_未分類"); 
-                    bat += `if not exist "_未分類" md "_未分類"\r\n`; 
-                }
-                bat += `move "${d.originalName}" "_未分類\\${d.originalName}"\r\n`;
+                // 沒有分類 = 留在原地 (targetPath 就是檔名)
                 unsortedCount++;
-                return;
+                finalName = generateFilename(d, 1);
+                targetPath = finalName;
+            } else {
+                // 有分類 = 移入資料夾
+                safeCat = d.category.replace(/[\\/:*?"<>|]/g, '_');
+                if(!counts[d.category]) counts[d.category]=0;
+                counts[d.category]++;
+                finalName = generateFilename(d, counts[d.category]);
+                targetPath = `${safeCat}\\${finalName}`;
             }
             
-            let safeCat = d.category.replace(/[\\/:*?"<>|]/g, '_');
-            
-            if(!counts[d.category]) counts[d.category]=0;
-            counts[d.category]++;
-            
-            let finalName = generateFilename(d, counts[d.category]);
-            
-            bat += `if not exist "${safeCat}\\${finalName}" (\r\n`;
-            bat += `  move "${d.originalName}" "${safeCat}\\${finalName}"\r\n`;
+            bat += `if not exist "${targetPath}" (\r\n`;
+            bat += `  move "${d.originalName}" "${targetPath}"\r\n`;
             bat += `) else (\r\n`;
-            bat += `  echo [略過] 檔案已存在: "${safeCat}\\${finalName}"\r\n`;
+            bat += `  echo [略過] 檔案已存在: "${targetPath}"\r\n`;
             bat += `)\r\n`;
         });
         
-        bat += `\r\necho 整理完成！ (含 ${unsortedCount} 張未分類)\r\npause`;
+        bat += `\r\necho 整理完成！ (含 ${unsortedCount} 張原地改名/未分類)\r\npause`;
         
         const blob = new Blob([bat], {type: 'text/plain;charset=utf-8'});
         const link = document.createElement("a");
