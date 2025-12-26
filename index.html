@@ -12,6 +12,29 @@
         .navbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; background: white; padding: 10px 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); z-index: 50; }
         .nav-title { margin: 0; font-size: 1.2rem; font-weight: bold; }
 
+        /* --- 新增：上方中間的狀態列樣式 --- */
+        .nav-center-stats {
+            display: flex;
+            align-items: center;
+            background: #f8f9fa;
+            padding: 5px 15px;
+            border-radius: 50px;
+            border: 1px solid #e9ecef;
+            font-size: 14px;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .stat-origin { color: #888; text-decoration: line-through; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.9em; }
+        .stat-arrow { margin: 0 10px; color: #ccc; font-weight: bold; }
+        .stat-target { 
+            color: #0d6efd; 
+            font-weight: bold; 
+            font-size: 1.1em; 
+            font-family: Consolas, monospace;
+            background: #e7f1ff;
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+
         .main-layout { display: grid; grid-template-columns: 1fr 420px; gap: 20px; flex: 1; min-height: 0; position: relative; }
         
         /* 圖片區 */
@@ -60,22 +83,19 @@
 
         /* 分類按鈕 */
         .btn-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 8px; }
-        /* --- ⬇️ 在這裡貼上您提供的這段程式碼 ⬇️ --- */
+        
+        /* --- 新增修正：限制分類與標籤的高度，超過時出現滾動條 --- */
         #catContainer, #tagContainer {
-            max-height: 25vh;  /* 限制高度：螢幕高度的 25% */
-            overflow-y: auto;  /* 超過高度時，內部出現滾動條 */
-            
-            /* 美化外觀 */
+            max-height: 25vh;  /* 設定最大高度 */
+            overflow-y: auto;  /* 內容超過時顯示垂直捲軸 */
             padding-right: 5px; 
             border: 1px solid #f8f9fa;
             border-radius: 6px;
             align-content: start;
         }
-
-        /* 滾動條美化 */
         #catContainer::-webkit-scrollbar, #tagContainer::-webkit-scrollbar { width: 6px; }
         #catContainer::-webkit-scrollbar-thumb, #tagContainer::-webkit-scrollbar-thumb { background-color: #ccc; border-radius: 3px; }
-        /* --- ⬆️ 插入結束 ⬆️ --- */
+
         .cat-btn, .tag-btn { 
             background: white; border: 1px solid #ccc; padding: 10px 5px; border-radius: 6px; 
             cursor: pointer; font-size: 14px; text-align: center; transition: 0.2s; position: relative;
@@ -149,13 +169,12 @@
         .modal-body.active { display: block; }
 
         /* 設定表格 */
-        /* --- ⭐ 修改開始：讓設定區塊自動填滿並獨立滾動 --- */
+        /* --- ⭐ 修改：讓設定區塊自動填滿並獨立滾動 --- */
         .settings-grid { 
             display: grid; 
             grid-template-columns: 1fr 1fr; 
             gap: 20px; 
             
-            /* 新增以下屬性來控制滾動 */
             flex: 1;              /* 關鍵：自動佔滿剩餘高度 */
             overflow-y: auto;     /* 關鍵：內容太長時顯示滾動條 */
             min-height: 0;        /* 避免被內容撐開容器 */
@@ -163,11 +182,9 @@
             padding-right: 5px;   /* 預留一點右邊距給捲軸 */
             margin-bottom: 10px;  /* 與下方按鈕保持距離 */
         }
-        
-        /* 讓設定區的捲軸也美化 (跟側邊欄統一風格) */
         .settings-grid::-webkit-scrollbar { width: 6px; }
         .settings-grid::-webkit-scrollbar-thumb { background-color: #ccc; border-radius: 3px; }
-        /* --- 修改結束 --- */
+        
         .settings-col h3 { margin-top: 0; border-bottom: 1px solid #eee; padding-bottom: 10px; color: #555; }
         .settings-table { width: 100%; border-collapse: collapse; }
         .settings-table td { padding: 8px 0; border-bottom: 1px solid #f0f0f0; vertical-align: middle; }
@@ -195,13 +212,60 @@
         .help-block { margin-bottom: 25px; border-bottom: 1px solid #eee; padding-bottom: 15px; }
         .help-block:last-child { border-bottom: none; }
         .help-step-title { font-weight: bold; color: var(--primary); font-size: 1.1em; margin-bottom: 8px; display: block; }
+
+        /* --- 新增：歷史紀錄側邊抽屜 --- */
+        .history-drawer {
+            position: fixed;
+            top: 0;
+            right: -320px; /* 預設藏在右邊外面 */
+            width: 300px;
+            height: 100vh;
+            background: white;
+            box-shadow: -2px 0 10px rgba(0,0,0,0.1);
+            z-index: 2000;
+            transition: right 0.3s ease; /* 滑動特效 */
+            display: flex;
+            flex-direction: column;
+        }
+        .history-drawer.active { right: 0; }
+        .history-header {
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+            background: #f8f9fa;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .history-body { flex: 1; overflow-y: auto; padding: 10px; }
+        
+        /* 歷史清單項目的樣式 */
+        .history-item {
+            padding: 8px 10px;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .history-item:last-child { border-bottom: none; }
+        .history-item.current { background: #e7f1ff; border-left: 3px solid #0d6efd; }
+        .history-seq { color: #0d6efd; font-weight: bold; font-family: monospace; }
+        .history-trash { color: #dc3545; text-decoration: line-through; color:#aaa; }
     </style>
 </head>
 <body>
 
 <div class="navbar">
     <div class="nav-title">📷 照片歸檔工具 <span style="font-size:0.8em; font-weight:normal;">v8.11</span></div>
+    
+    <div class="nav-center-stats" id="navStats" style="display:none;">
+        <span class="stat-origin" id="navOriginName">原始檔名</span>
+        <span class="stat-arrow">➔</span>
+        <span class="stat-target" id="navTargetName">...</span>
+    </div>
     <div style="display:flex; gap:10px; align-items:center;">
+        <button class="tool-btn" onclick="toggleHistory()">📝 歷史紀錄</button>
         <button class="tool-btn" onclick="rotateImage()">⟳ 轉向 (僅預覽)</button>
         <button class="btn-help" onclick="openHelpModal('tab1')">❓ 教學</button>
         <label for="folderInput" id="uploadBtn" class="btn-upload" onclick="return checkUpload()"><span>📂 選擇資料夾</span></label>
@@ -285,6 +349,15 @@
             </div>
         </div>
     </div>
+</div>
+
+<div id="historyPanel" class="history-drawer">
+    <div class="history-header">
+        <span>📜 已命名檔案清單</span>
+        <button onclick="toggleHistory()" style="border:none; background:none; cursor:pointer; font-size:18px;">×</button>
+    </div>
+    <div id="historyList" class="history-body">
+        </div>
 </div>
 
 <div id="welcomeOverlay" class="tour-overlay">
@@ -388,7 +461,6 @@
         <button class="save-btn" onclick="saveSettings()">💾 儲存設定</button>
     </div>
 </div>
-
 <script>
     // --- 核心資料 ---
     let categories = [ { name: "範例分類A", key: "1" }, { name: "範例分類B", key: "2" }, { name: "範例分類C", key: "3" }, { name: "其他", key: "4" } ];
@@ -614,6 +686,8 @@
             UI.infoProgress.textContent = `進度: ${currentIndex + 1} / ${files.length}`;
         }
 
+        let finalName = ""; // 在這裡宣告，讓後面的導航列可以用
+
         if (data.isDeleted) {
             UI.preview.textContent = "🗑️ 將移至回收桶";
             UI.preview.style.color = "#dc3545";
@@ -642,7 +716,7 @@
                 }
             }
             
-            let finalName = generateFilename(data, seqNum);
+            finalName = generateFilename(data, seqNum);
             let safeCat = data.category ? data.category.replace(/[\\/:*?"<>|]/g, '_') : "";
             
             // ⭐ v8.9 修改：如果沒有分類，顯示當前目錄 ./
@@ -650,6 +724,36 @@
 
             UI.preview.textContent = `存檔為: ${prefix}${finalName}`;
             UI.preview.style.color = "#333";
+        }
+
+        // --- ⭐ 新增：同步更新上方導航列資訊 ⭐ ---
+        const navStats = document.getElementById('navStats');
+        const navOrigin = document.getElementById('navOriginName');
+        const navTarget = document.getElementById('navTargetName');
+
+        if (!isDemoMode && files.length > 0) {
+            navStats.style.display = 'flex'; // 顯示區塊
+            navOrigin.textContent = data.originalName; // 顯示原始檔名
+
+            if (data.isDeleted) {
+                // 如果是刪除狀態
+                navTarget.textContent = "🗑️ 刪除";
+                navTarget.style.color = "#dc3545"; // 紅色
+                navTarget.style.background = "#fee2e2";
+            } else {
+                // 正常狀態
+                if (finalName) {
+                    navTarget.textContent = finalName;
+                    navTarget.style.color = "#0d6efd"; // 藍色
+                    navTarget.style.background = "#e7f1ff";
+                }
+            }
+        }
+
+        // --- ⭐ 新增：如果歷史面板開著，就自動更新內容 ⭐ ---
+        const panel = document.getElementById('historyPanel');
+        if (panel && panel.classList.contains('active')) {
+            renderHistory();
         }
     }
     
@@ -813,6 +917,7 @@
         document.querySelectorAll('.tab-btn').forEach(e=>e.classList.remove('active'));
         document.getElementById(t).classList.add('active'); document.getElementById('btn-'+t).classList.add('active');
     }
+    
     function openSettings() {
         // 產生主分類設定列表
         const cBody = document.getElementById('catSettingsBody'); 
@@ -841,9 +946,11 @@
         });
 
         UI.settingsModal.style.display = 'flex';
-    }
+    } 
+
     function closeSettings() { UI.settingsModal.style.display = 'none'; }
-function saveSettings() {
+    
+    function saveSettings() {
         // --- ⭐ 新增：檢查重複按鍵邏輯 ---
         let usedKeys = new Set();
         let hasError = false;
@@ -879,6 +986,74 @@ function saveSettings() {
     }
     function addCatRow() { categories.push({name:"", key:""}); openSettings(); }
     function addTagRow() { tags.push({name:"", key:""}); openSettings(); }
+
+    // --- ⭐ 新增：歷史紀錄功能邏輯 ⭐ ---
+    
+    // 1. 開關抽屜
+    function toggleHistory() {
+        const panel = document.getElementById('historyPanel');
+        panel.classList.toggle('active');
+        
+        // 如果是打開狀態，就更新清單
+        if (panel.classList.contains('active')) {
+            renderHistory();
+        }
+    }
+
+    // 2. 產生清單 (核心邏輯)
+    function renderHistory() {
+        if (fileData.length === 0) return;
+
+        const listDiv = document.getElementById('historyList');
+        listDiv.innerHTML = '';
+
+        // 準備計數器 (邏輯同 exportBat)
+        let counts = {};
+        let noCatSeq = 0;
+
+        // 從頭開始掃描每一張照片
+        fileData.forEach((d, i) => {
+            // 只顯示「已經處理過」或是「當前這張」的照片
+            if (i > currentIndex) return; 
+
+            let displayHtml = "";
+            let isCurrent = (i === currentIndex);
+
+            if (d.isDeleted) {
+                // 刪除的照片
+                displayHtml = `<span class="history-trash">🗑️ ${d.originalName}</span>`;
+            } else {
+                // 正常照片，計算檔名
+                let finalName = "";
+                
+                if (!d.category) {
+                    // 未分類 (原地)
+                    noCatSeq++;
+                    finalName = generateFilename(d, noCatSeq);
+                } else {
+                    // 有分類
+                    if (!counts[d.category]) counts[d.category] = 0;
+                    counts[d.category]++;
+                    finalName = generateFilename(d, counts[d.category]);
+                }
+                
+                // 去除副檔名，讓畫面乾淨點
+                let shortName = finalName.split('.')[0];
+                displayHtml = `<span class="${isCurrent ? '' : 'history-seq'}">${shortName}</span>`;
+            }
+
+            // 建立 HTML 元素
+            let div = document.createElement('div');
+            div.className = `history-item ${isCurrent ? 'current' : ''}`;
+            div.innerHTML = `
+                ${displayHtml}
+                <span style="font-size:12px; color:#999;">#${i+1}</span>
+            `;
+            
+            // 新的最上面 (倒序)
+            listDiv.insertBefore(div, listDiv.firstChild);
+        });
+    }
 
     // --- Export BAT (v8.10: 修正未分類的原地改名 + 流水號邏輯) ---
     function exportBat() {
