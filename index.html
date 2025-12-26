@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>照片歸檔工具V8.11</title>
+    <title>照片歸檔工具V8.12 (最終完整修復版)</title>
     <style>
         :root { --primary: #0d6efd; --purple: #6610f2; --success: #198754; --warning: #ffc107; --danger: #dc3545; --bg: #f8f9fa; --overlay-bg: rgba(0,0,0,0.85); }
         body { font-family: "Microsoft JhengHei", "Segoe UI", sans-serif; margin: 0; padding: 20px; background: var(--bg); color: #333; height: 100vh; box-sizing: border-box; display: flex; flex-direction: column; overflow: hidden; }
@@ -12,39 +12,28 @@
         .navbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; background: white; padding: 10px 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); z-index: 50; }
         .nav-title { margin: 0; font-size: 1.2rem; font-weight: bold; }
 
-        /* --- 新增：上方中間的狀態列樣式 --- */
+        /* 上方中間的狀態列樣式 */
         .nav-center-stats {
-            display: flex;
-            align-items: center;
-            background: #f8f9fa;
-            padding: 5px 15px;
-            border-radius: 50px;
-            border: 1px solid #e9ecef;
-            font-size: 14px;
-            box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
+            display: flex; align-items: center; background: #f8f9fa;
+            padding: 5px 15px; border-radius: 50px; border: 1px solid #e9ecef;
+            font-size: 14px; box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
         }
         .stat-origin { color: #888; text-decoration: line-through; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.9em; }
         .stat-arrow { margin: 0 10px; color: #ccc; font-weight: bold; }
         .stat-target { 
-            color: #0d6efd; 
-            font-weight: bold; 
-            font-size: 1.1em; 
-            font-family: Consolas, monospace;
-            background: #e7f1ff;
-            padding: 2px 8px;
-            border-radius: 4px;
+            color: #0d6efd; font-weight: bold; font-size: 1.1em; 
+            font-family: Consolas, monospace; background: #e7f1ff;
+            padding: 2px 8px; border-radius: 4px;
         }
 
         .main-layout { display: grid; grid-template-columns: 1fr 420px; gap: 20px; flex: 1; min-height: 0; position: relative; }
         
         /* 圖片區 */
         .image-panel { background: #222; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        
-        /* 圖片容器與模式 */
         .image-container { width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; overflow: hidden; position: relative; }
         .image-container img { transition: transform 0.2s ease; display: none; transform-origin: center center; }
         
-        /* 顯示模式 (CSS Class) */
+        /* 顯示模式 */
         .view-fit img { max-width: 95%; max-height: 95%; object-fit: contain; }
         .view-fill img { width: 100%; height: 100%; object-fit: cover; }
         .view-small img { max-width: 60%; max-height: 60%; object-fit: contain; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
@@ -64,18 +53,14 @@
             backdrop-filter: blur(2px); z-index: 20;
         }
 
-        /* 預設佔位 */
         .placeholder-content { text-align: center; color: #666; }
         .placeholder-icon { font-size: 5rem; margin-bottom: 10px; opacity: 0.3; }
-        
-        /* 狀態遮罩 */
         .status-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: none; justify-content: center; align-items: center; color: #ff6b6b; font-size: 4rem; font-weight: bold; z-index: 10; flex-direction: column; pointer-events: none; }
         
         /* 側邊欄 */
         .sidebar { background: white; border-radius: 8px; padding: 20px; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
         .section-header { border-bottom: 2px solid #eee; padding-bottom: 5px; margin-bottom: 8px; font-weight: bold; color: #555; font-size: 0.95rem; display: flex; justify-content: space-between; align-items: center; }
         
-        /* 工具列 */
         .toolbar { display: flex; gap: 8px; margin-bottom: 5px; }
         .tool-btn { flex: 1; padding: 8px; border: 1px solid #ccc; background: white; border-radius: 6px; cursor: pointer; font-size: 13px; display: flex; align-items: center; justify-content: center; gap: 5px; transition: 0.2s; }
         .tool-btn:hover { background: #f0f0f0; }
@@ -84,14 +69,10 @@
         /* 分類按鈕 */
         .btn-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 8px; }
         
-        /* --- 新增修正：限制分類與標籤的高度，超過時出現滾動條 --- */
+        /* 限制分類與標籤高度 */
         #catContainer, #tagContainer {
-            max-height: 25vh;  /* 設定最大高度 */
-            overflow-y: auto;  /* 內容超過時顯示垂直捲軸 */
-            padding-right: 5px; 
-            border: 1px solid #f8f9fa;
-            border-radius: 6px;
-            align-content: start;
+            max-height: 25vh; overflow-y: auto; padding-right: 5px; 
+            border: 1px solid #f8f9fa; border-radius: 6px; align-content: start;
         }
         #catContainer::-webkit-scrollbar, #tagContainer::-webkit-scrollbar { width: 6px; }
         #catContainer::-webkit-scrollbar-thumb, #tagContainer::-webkit-scrollbar-thumb { background-color: #ccc; border-radius: 3px; }
@@ -127,27 +108,22 @@
 
         /* 預覽與導航區 */
         .preview-box { background: #e9ecef; padding: 12px; border-radius: 6px; text-align: right; font-family: monospace; font-size: 0.95rem; color: #555; margin-top: auto; border: 1px solid #dee2e6; }
-        
-        /* 導航按鈕 */
         .nav-btn-group { display: flex; gap: 10px; margin-top: 10px; }
         .nav-btn { flex: 1; padding: 12px; font-size: 15px; border: 1px solid #ccc; background: white; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.2s; }
         .nav-btn:hover { background: #f0f0f0; }
         .nav-btn-primary { flex: 1.5; background: var(--primary); color: white; border: none; }
         .nav-btn-primary:hover { background: #0b5ed7; }
 
-        /* 下載按鈕群 */
         .btn-download { background: #fd7e14; color: white; width: 100%; padding: 15px; font-size: 15px; border: none; border-radius: 6px; cursor: not-allowed; font-weight: bold; opacity: 0.5; transition:0.3s; pointer-events: none; margin-top: 5px; }
         .btn-download.active { cursor: pointer; opacity: 1; pointer-events: auto; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
         .btn-download.active:hover { transform: translateY(-2px); }
         #reportBtn.active:hover { background: #146c43; }
         #downloadBtn.active:hover { background: #e96b02; }
 
-        /* 上方按鈕 */
         .btn-help { background: var(--purple); color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px; }
         .btn-upload { background: var(--success); color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 15px; transition:0.2s; }
         .btn-upload:hover { background: #157347; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
 
-        /* 歡迎與導覽 */
         .tour-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--overlay-bg); z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; color: white; }
         .welcome-box { background: white; color: #333; padding: 40px; border-radius: 12px; max-width: 500px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
         .start-btn { padding: 12px 30px; font-size: 1.1rem; background: var(--primary); color: white; border: none; border-radius: 50px; cursor: pointer; font-weight: bold; margin: 10px; }
@@ -169,18 +145,10 @@
         .modal-body.active { display: block; }
 
         /* 設定表格 */
-        /* --- ⭐ 修改：讓設定區塊自動填滿並獨立滾動 --- */
         .settings-grid { 
-            display: grid; 
-            grid-template-columns: 1fr 1fr; 
-            gap: 20px; 
-            
-            flex: 1;              /* 關鍵：自動佔滿剩餘高度 */
-            overflow-y: auto;     /* 關鍵：內容太長時顯示滾動條 */
-            min-height: 0;        /* 避免被內容撐開容器 */
-            align-content: start; /* 內容少時靠上對齊 */
-            padding-right: 5px;   /* 預留一點右邊距給捲軸 */
-            margin-bottom: 10px;  /* 與下方按鈕保持距離 */
+            display: grid; grid-template-columns: 1fr 1fr; gap: 20px; 
+            flex: 1; overflow-y: auto; min-height: 0; align-content: start; 
+            padding-right: 5px; margin-bottom: 10px; 
         }
         .settings-grid::-webkit-scrollbar { width: 6px; }
         .settings-grid::-webkit-scrollbar-thumb { background-color: #ccc; border-radius: 3px; }
@@ -194,60 +162,26 @@
         .add-btn:hover { background: #e9ecef; }
         .save-btn { background: var(--primary); color: white; padding: 10px; border: none; border-radius: 6px; width: 100%; margin-top: 15px; font-weight: bold; cursor: pointer; }
         
-        .icon-btn { 
-            width: 32px; height: 32px; border-radius: 50%; border: none; 
-            display: flex; align-items: center; justify-content: center; 
-            cursor: pointer; transition: 0.2s; font-weight: bold; font-size: 16px;
-        }
+        .icon-btn { width: 32px; height: 32px; border-radius: 50%; border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; font-weight: bold; font-size: 16px; }
         .btn-del { background: #fee2e2; color: #dc3545; margin-left: auto; }
         .btn-del:hover { background: #dc3545; color: white; }
 
-        .bat-diagram { display: flex; gap: 10px; background: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px dashed #ccc; text-align: center; font-size: 13px; }
-        .bat-step { flex: 1; } .bat-icon { font-size: 1.8rem; display: block; }
-        .win-alert { border: 1px solid #d9d9d9; background: white; margin: 15px 0; box-shadow: 0 2px 5px rgba(0,0,0,0.1); font-family: "Segoe UI", sans-serif; }
-        .win-bar { background: #ffcc00; padding: 10px; display: flex; align-items: center; gap: 10px; }
-        .win-body { padding: 15px; font-size: 13px; color: #333; }
-        
         .important-box { background:#fff3cd; border-left:5px solid #ffc107; padding:15px; margin-bottom:15px; }
         .help-block { margin-bottom: 25px; border-bottom: 1px solid #eee; padding-bottom: 15px; }
         .help-block:last-child { border-bottom: none; }
         .help-step-title { font-weight: bold; color: var(--primary); font-size: 1.1em; margin-bottom: 8px; display: block; }
 
-        /* --- 新增：歷史紀錄側邊抽屜 --- */
+        /* 歷史紀錄側邊抽屜 */
         .history-drawer {
-            position: fixed;
-            top: 0;
-            right: -320px; /* 預設藏在右邊外面 */
-            width: 300px;
-            height: 100vh;
-            background: white;
-            box-shadow: -2px 0 10px rgba(0,0,0,0.1);
-            z-index: 2000;
-            transition: right 0.3s ease; /* 滑動特效 */
-            display: flex;
-            flex-direction: column;
+            position: fixed; top: 0; right: -320px; width: 300px; height: 100vh;
+            background: white; box-shadow: -2px 0 10px rgba(0,0,0,0.1); z-index: 2000;
+            transition: right 0.3s ease; display: flex; flex-direction: column;
         }
         .history-drawer.active { right: 0; }
-        .history-header {
-            padding: 15px;
-            border-bottom: 1px solid #eee;
-            background: #f8f9fa;
-            font-weight: bold;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
+        .history-header { padding: 15px; border-bottom: 1px solid #eee; background: #f8f9fa; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
         .history-body { flex: 1; overflow-y: auto; padding: 10px; }
         
-        /* 歷史清單項目的樣式 */
-        .history-item {
-            padding: 8px 10px;
-            border-bottom: 1px solid #f0f0f0;
-            font-size: 14px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
+        .history-item { padding: 8px 10px; border-bottom: 1px solid #f0f0f0; font-size: 14px; display: flex; justify-content: space-between; align-items: center; }
         .history-item:last-child { border-bottom: none; }
         .history-item.current { background: #e7f1ff; border-left: 3px solid #0d6efd; }
         .history-seq { color: #0d6efd; font-weight: bold; font-family: monospace; }
@@ -257,13 +191,14 @@
 <body>
 
 <div class="navbar">
-    <div class="nav-title">📷 照片歸檔工具 <span style="font-size:0.8em; font-weight:normal;">v8.11</span></div>
+    <div class="nav-title">📷 照片歸檔工具 <span style="font-size:0.8em; font-weight:normal;">v8.12</span></div>
     
     <div class="nav-center-stats" id="navStats" style="display:none;">
         <span class="stat-origin" id="navOriginName">原始檔名</span>
         <span class="stat-arrow">➔</span>
         <span class="stat-target" id="navTargetName">...</span>
     </div>
+
     <div style="display:flex; gap:10px; align-items:center;">
         <button class="tool-btn" onclick="toggleHistory()">📝 歷史紀錄</button>
         <button class="tool-btn" onclick="rotateImage()">⟳ 轉向 (僅預覽)</button>
@@ -356,8 +291,7 @@
         <span>📜 已命名檔案清單</span>
         <button onclick="toggleHistory()" style="border:none; background:none; cursor:pointer; font-size:18px;">×</button>
     </div>
-    <div id="historyList" class="history-body">
-        </div>
+    <div id="historyList" class="history-body"></div>
 </div>
 
 <div id="welcomeOverlay" class="tour-overlay">
@@ -446,6 +380,18 @@
     <div class="modal-content" onclick="event.stopPropagation()">
         <button style="align-self:flex-end; border:none; background:none; font-size:24px; cursor:pointer;" onclick="closeSettings()">×</button>
         <h2 style="margin-top:0;">🛠️ 設定分類與標籤</h2>
+        
+        <div style="background:#fff3cd; padding:10px; border-radius:6px; margin-bottom:15px; display:flex; align-items:center; justify-content:space-between;">
+            <div>
+                <strong>⌨️ 啟用組合鍵模式 (如 QW, 12)</strong>
+                <div style="font-size:12px; color:#666;">開啟後，單鍵操作會有約 0.3 秒的延遲以等待連擊。</div>
+            </div>
+            <label class="switch">
+                <input type="checkbox" id="comboKeyCheck" onchange="toggleComboMode()">
+                <span class="slider"></span>
+            </label>
+        </div>
+
         <div class="settings-grid">
             <div class="settings-col">
                 <h3>📂 主分類</h3>
@@ -461,6 +407,7 @@
         <button class="save-btn" onclick="saveSettings()">💾 儲存設定</button>
     </div>
 </div>
+
 <script>
     // --- 核心資料 ---
     let categories = [ { name: "範例分類A", key: "1" }, { name: "範例分類B", key: "2" }, { name: "範例分類C", key: "3" }, { name: "其他", key: "4" } ];
@@ -477,8 +424,13 @@
     let isLocked = false;
     let currentViewMode = 'fit';
     
-    // v8.4: 智慧開關記憶變數 (預設 true)
     let currentAutoState = true;
+
+    // 組合鍵模式變數
+    let isComboMode = false;
+    let keyBuffer = "";
+    let keyTimer = null;
+    const BUFFER_DELAY = 280;
 
     // --- DOM ---
     const UI = {
@@ -503,11 +455,14 @@
         autoSeqCheck: document.getElementById('autoSeqCheck'),
         customInput: document.getElementById('customInput'),
         lockBtn: document.getElementById('lockBtn'),
-        startSeqInput: document.getElementById('startSeqInput')
+        startSeqInput: document.getElementById('startSeqInput'),
+        folderInput: document.getElementById('folderInput')
     };
 
     // --- 初始化 ---
     initUI();
+    // 綁定檔案上傳事件
+    UI.folderInput.addEventListener('change', handleFiles);
 
     function initUI() {
         UI.catContainer.innerHTML = '';
@@ -534,9 +489,15 @@
             UI.tagContainer.appendChild(btn);
             if(t.key) keyMap[t.key.toLowerCase()] = { type: 'tag', val: t.name };
         });
+        
+        document.getElementById('comboKeyCheck').checked = isComboMode;
     }
 
-    // --- 上傳檢查 ---
+    function toggleComboMode() {
+        isComboMode = document.getElementById('comboKeyCheck').checked;
+    }
+
+    // --- 上傳與檔案處理 ---
     function checkUpload() {
         if (isTourActive) { alert("請先完成或跳過新手導引！"); return false; }
         if (isDemoMode) {
@@ -547,6 +508,121 @@
             return false;
         }
         return true;
+    }
+
+    function handleFiles(e) {
+        if(isDemoMode) endDemoMode();
+        
+        const rawFiles = Array.from(e.target.files).filter(f => f.name.match(/\.(jpg|jpeg|png|gif|webp|bmp)$/i));
+        if(rawFiles.length === 0) {
+            alert("❌ 找不到圖片檔案！請確認選擇的資料夾內有圖片。");
+            return;
+        }
+
+        // 自然排序
+        files = rawFiles.sort((a,b) => a.name.localeCompare(b.name, undefined, {numeric: true, sensitivity: 'base'}));
+        
+        // 初始化檔案資料
+        fileData = files.map(f => ({
+            originalName: f.name,
+            category: null,
+            tags: new Set(),
+            isDeleted: false,
+            customName: "",
+            isAuto: true
+        }));
+
+        currentIndex = 0;
+        isDemoMode = false;
+        
+        UI.welcomeOverlay.style.display = 'none';
+        UI.placeholder.style.display = 'none';
+        UI.img.style.display = 'block';
+        UI.infoBar.style.display = 'flex';
+        UI.downloadBtn.classList.add('active');
+        UI.reportBtn.classList.add('active');
+
+        // 更新 UI
+        loadImage();
+        updateUI();
+    }
+
+    function endDemoMode() {
+        isDemoMode = false;
+        UI.welcomeOverlay.style.display = 'none';
+        files = [];
+        fileData = [];
+        currentIndex = 0;
+        UI.placeholder.style.display = 'flex';
+        UI.img.style.display = 'none';
+        UI.infoBar.style.display = 'none';
+        // 清除 input 以便重新選擇同一個資料夾
+        UI.folderInput.value = '';
+    }
+
+    function loadImage() {
+        if(files.length === 0) return;
+        
+        const file = files[currentIndex];
+        
+        // 釋放舊的 ObjectURL
+        if(UI.img.src && UI.img.src.startsWith('blob:')) {
+            URL.revokeObjectURL(UI.img.src);
+        }
+        
+        UI.img.src = URL.createObjectURL(file);
+        rotationDeg = 0;
+        UI.img.style.transform = `rotate(0deg)`;
+    }
+
+    // --- 導航邏輯 ---
+    function nextImage() {
+        if(files.length === 0) return;
+        if(currentIndex < files.length - 1) {
+            currentIndex++;
+            
+            // 鎖定邏輯：如果沒有鎖定，且下一張照片還沒被分類過，清空分類
+            if(!isLocked) {
+                if(!fileData[currentIndex].category && fileData[currentIndex].tags.size === 0) {
+                    // 保持預設空白
+                } else if (!isLocked) {
+                   // 如果使用者往回看再往後看，保留該照片既有的設定
+                }
+            } else {
+                // 如果鎖定，繼承上一張的設定
+                let prev = fileData[currentIndex-1];
+                let curr = fileData[currentIndex];
+                if(!curr.category && curr.tags.size===0) {
+                    curr.category = prev.category;
+                    curr.tags = new Set(prev.tags);
+                }
+            }
+
+            // 自訂檔名模式下，自動填入原始檔名
+            if(!UI.autoSeqCheck.checked && !fileData[currentIndex].customName) {
+                let nameWithoutExt = fileData[currentIndex].originalName.replace(/\.[^/.]+$/, "");
+                fileData[currentIndex].customName = nameWithoutExt;
+            }
+
+            loadImage();
+            updateUI();
+            
+            // 如果在自訂模式，聚焦輸入框
+            if(!UI.autoSeqCheck.checked) {
+                setTimeout(() => UI.customInput.focus(), 50);
+            }
+        } else {
+            alert("🎉 已經是最後一張了！");
+        }
+    }
+
+    function prevImage() {
+        if(files.length === 0) return;
+        if(currentIndex > 0) {
+            currentIndex--;
+            loadImage();
+            updateUI();
+        }
     }
 
     // --- 核心邏輯 ---
@@ -591,13 +667,9 @@
     // --- 視圖切換邏輯 ---
     function changeView(mode) {
         currentViewMode = mode;
-        
-        // UI按鈕狀態更新
         document.querySelectorAll('.view-btn').forEach(btn => btn.classList.remove('active'));
         if(mode==='fit') document.querySelectorAll('.view-btn')[0].classList.add('active');
         if(mode==='small') document.querySelectorAll('.view-btn')[1].classList.add('active');
-
-        // 更新容器 Class
         UI.imgContainer.className = 'image-container'; // reset
         UI.imgContainer.classList.add(`view-${mode}`);
     }
@@ -606,26 +678,17 @@
     function toggleNamingMode() {
         let data = getData();
         data.isAuto = UI.autoSeqCheck.checked;
-        
-        // 更新全域記憶變數
         currentAutoState = data.isAuto;
-
-        // --- ⭐ v8.6/v8.7: 智慧自動代入檔名 ---
         if (!data.isAuto) {
-            // 條件：沒有分類 AND 沒有標籤 AND 目前自訂名稱是空的
-            if (!data.category && data.tags.size === 0 && !data.customName) {
-                // 取得原始檔名，並去除副檔名
-                let nameWithoutExt = data.originalName.replace(/\.[^/.]+$/, "");
+            // 如果切換到自訂模式且沒有值，帶入原檔名
+            if ((!data.category && data.tags.size === 0 && !data.customName) || !data.customName) {
+                let nameWithoutExt = isDemoMode ? "demo" : data.originalName.replace(/\.[^/.]+$/, "");
                 data.customName = nameWithoutExt;
                 UI.customInput.value = nameWithoutExt;
             }
         }
-        // --- 結束 ---
-
         updateUI(); 
-        if (!data.isAuto) {
-            setTimeout(() => { UI.customInput.focus(); }, 50);
-        }
+        if (!data.isAuto) setTimeout(() => { UI.customInput.focus(); }, 50);
     }
 
     function onCustomInputChange(input) {
@@ -636,18 +699,14 @@
         updateUI();
     }
 
-    // --- ⭐ v8.8 檔名生成 (優化無分類邏輯) ---
+    // --- 檔名生成 ---
     function generateFilename(d, seqNum) {
-        // 如果沒有分類，不回傳 _未分類，改回傳空字串 (避免檔名變成 _未分類_檔名)
         let safeCategory = d.category ? d.category.replace(/[\\/:*?"<>|]/g, '_') : "";
-        
         let parts = [];
         if(safeCategory) parts.push(safeCategory);
-        
         tags.forEach(t => { 
             if(d.tags.has(t.name)) parts.push(t.name.replace(/[\\/:*?"<>|]/g, '_')); 
         });
-
         let ext = "jpg"; 
         if(d.originalName) ext = d.originalName.split('.').pop().toLowerCase(); 
         
@@ -658,11 +717,9 @@
             let actualSeq = seqNum + startOffset - 1;
             let seqStr = String(actualSeq).padStart(3,'0');
             finalName = `${parts.join('_')}_${seqStr}.${ext}`;
-            // 修正：如果 parts 為空 (沒分類沒標籤)，避免開頭出現 _
             if(parts.length === 0) finalName = `${seqStr}.${ext}`;
         } else { 
             let cust = d.customName || "名稱";
-            // 修正：如果 parts 為空，直接用自訂檔名
             if(parts.length === 0) finalName = `${cust}.${ext}`;
             else finalName = `${parts.join('_')}_${cust}.${ext}`;
         }
@@ -686,78 +743,60 @@
             UI.infoProgress.textContent = `進度: ${currentIndex + 1} / ${files.length}`;
         }
 
-        let finalName = ""; // 在這裡宣告，讓後面的導航列可以用
+        let finalName = "";
 
         if (data.isDeleted) {
             UI.preview.textContent = "🗑️ 將移至回收桶";
             UI.preview.style.color = "#dc3545";
         } else {
-            // ⭐ v8.10 修正：現在未分類也會計算流水號，避免全部顯示為 001
             let seqNum = 1;
             if(!isDemoMode) {
-                // 如果有分類，計算該分類的序號
                 if(data.category) {
                     seqNum = 0;
                     for(let i=0; i<=currentIndex; i++) {
-                        if(fileData[i].category === data.category && !fileData[i].isDeleted) {
-                            seqNum++;
-                        }
+                        if(fileData[i].category === data.category && !fileData[i].isDeleted) seqNum++;
                     }
                     if(seqNum === 0) seqNum = 1;
                 } else {
-                    // 如果沒分類，計算「未分類」的序號
                     seqNum = 0;
                     for(let i=0; i<=currentIndex; i++) {
-                        if(!fileData[i].category && !fileData[i].isDeleted) {
-                            seqNum++;
-                        }
+                        if(!fileData[i].category && !fileData[i].isDeleted) seqNum++;
                     }
                     if(seqNum === 0) seqNum = 1;
                 }
             }
-            
             finalName = generateFilename(data, seqNum);
             let safeCat = data.category ? data.category.replace(/[\\/:*?"<>|]/g, '_') : "";
-            
-            // ⭐ v8.9 修改：如果沒有分類，顯示當前目錄 ./
             let prefix = safeCat ? `${safeCat}\\` : ".\\";
-
             UI.preview.textContent = `存檔為: ${prefix}${finalName}`;
             UI.preview.style.color = "#333";
         }
 
-        // --- ⭐ 新增：同步更新上方導航列資訊 ⭐ ---
         const navStats = document.getElementById('navStats');
         const navOrigin = document.getElementById('navOriginName');
         const navTarget = document.getElementById('navTargetName');
 
         if (!isDemoMode && files.length > 0) {
-            navStats.style.display = 'flex'; // 顯示區塊
-            navOrigin.textContent = data.originalName; // 顯示原始檔名
-
+            navStats.style.display = 'flex';
+            navOrigin.textContent = data.originalName;
             if (data.isDeleted) {
-                // 如果是刪除狀態
                 navTarget.textContent = "🗑️ 刪除";
-                navTarget.style.color = "#dc3545"; // 紅色
-                navTarget.style.background = "#fee2e2";
+                navTarget.style.color = "#dc3545"; navTarget.style.background = "#fee2e2";
             } else {
-                // 正常狀態
                 if (finalName) {
                     navTarget.textContent = finalName;
-                    navTarget.style.color = "#0d6efd"; // 藍色
-                    navTarget.style.background = "#e7f1ff";
+                    navTarget.style.color = "#0d6efd"; navTarget.style.background = "#e7f1ff";
                 }
             }
         }
 
-        // --- ⭐ 新增：如果歷史面板開著，就自動更新內容 ⭐ ---
         const panel = document.getElementById('historyPanel');
         if (panel && panel.classList.contains('active')) {
             renderHistory();
         }
     }
     
-    // --- 鍵盤監聽 ---
+    // --- ⌨️ 終極版鍵盤監聽 ---
     document.addEventListener('keydown', (e) => {
         if (UI.welcomeOverlay.style.display !== 'none') return;
         if (UI.helpModal.style.display === 'flex' || UI.settingsModal.style.display === 'flex') return;
@@ -774,140 +813,45 @@
             return; 
         }
 
-        const key = e.key.toLowerCase();
-        if (key === 'delete') markDeleted();
-        else if (key === 'r') rotateImage();
-        else if (key === 'enter' && !isDemoMode && !isTourActive) nextImage();
-        else if (key === 'arrowleft' && !isDemoMode && !isTourActive) prevImage();
-        else if (key === 'arrowright' && !isDemoMode && !isTourActive) nextImage();
-        else if (keyMap[key]) {
-            const act = keyMap[key];
+        const keyRaw = e.key.toLowerCase();
+
+        // 功能鍵直接執行 (不進緩衝)
+        if (['enter', 'arrowleft', 'arrowright', 'delete', 'backspace', 'escape'].includes(keyRaw)) {
+            clearTimeout(keyTimer); keyBuffer = ""; 
+            if (keyRaw === 'delete') markDeleted();
+            else if (keyRaw === 'enter' && !isDemoMode && !isTourActive) nextImage();
+            else if (keyRaw === 'arrowleft' && !isDemoMode && !isTourActive) prevImage();
+            else if (keyRaw === 'arrowright' && !isDemoMode && !isTourActive) nextImage();
+            return;
+        }
+
+        // 分歧點：檢查是否開啟組合鍵模式
+        if (!isComboMode) {
+            executeKeyAction(keyRaw);
+        } else {
+            clearTimeout(keyTimer);
+            keyBuffer += keyRaw;
+            keyTimer = setTimeout(() => {
+                executeKeyAction(keyBuffer);
+                keyBuffer = "";
+            }, BUFFER_DELAY);
+        }
+    });
+
+    function executeKeyAction(cmd) {
+        if (keyMap[cmd]) {
+            const act = keyMap[cmd];
             if (act.type === 'cat') selectCategory(act.val);
             if (act.type === 'tag') toggleTag(act.val);
             
-            const btn = document.getElementById(`${act.type}_${key.toUpperCase()}`);
-            if(btn) { btn.style.transform = "scale(0.95)"; setTimeout(()=>btn.style.transform="scale(1)", 100); }
-        }
-    });
-
-    // --- 導覽流程 ---
-    function skipTour() { UI.welcomeOverlay.style.display = 'none'; endDemoMode(); }
-    function startTour() {
-        UI.welcomeOverlay.style.display = 'none';
-        isTourActive = true;
-        document.body.classList.add('tour-active');
-        UI.img.src = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4MDAiIGhlaWdodD0iNjAwIiB2aWV3Qm94PSIwIDAgODAwIDYwMCI+CiAgPHJlY3Qgd2lkdGg9IjgwMCIgaGVpZ2h0PSI2MDAiIGZpbGw9IiMzMzMiIC8+CiAgPHRleHQgeD0iNTA1IiB5PSI1MCUiIGRvbWluYW50LWJhc2VsaW5lPSJtaWRkbGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4ODgiIGZvbnQtZmFtaWx5PSJNaWNyb3NvZnQgSmhlbmdIZWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjQiPuabt+WbuuWcqOatpCAo6KKu5pSl6Yg45pW06auU54mHKTwvdGV4dD4KPC9zdmc+";
-        UI.placeholder.style.display = 'none';
-        UI.img.style.display = 'block';
-        
-        UI.dimmer.style.display = 'block';
-        tourStep = 1; showTourStep(1);
-    }
-    function showTourStep(step) {
-        document.querySelectorAll('.spotlight').forEach(el => { el.classList.remove('spotlight'); el.classList.remove('allow-click'); });
-        const tooltip = UI.tourTooltip;
-        tooltip.style.display = 'block';
-        
-        if(step===1) { setupTip(1, "選擇主分類", `請按鍵盤 '${categories[0].key}' 選擇 ${categories[0].name}`, `cat_${categories[0].key}`, 'right'); }
-        else if(step===2) { setupTip(2, "加上子標籤", `請按鍵盤 '${tags[0].key}' 加上 ${tags[0].name}`, `tag_${tags[0].key}`, 'right'); }
-        else if(step===3) { setupTip(3, "刪除廢片", "按 'Delete' 鍵丟棄照片", 'imgPanel', 'center'); }
-        else if(step===4) {
-            UI.dimmer.style.display = 'none'; tooltip.style.display = 'none';
-            document.body.classList.remove('tour-active'); isTourActive = false;
-            alert("🎉 練習結束！功能全解鎖。"); endDemoMode();
-        }
-    }
-    function setupTip(num, title, desc, targetId, pos) {
-        document.getElementById('tourStepBadge').innerText = num;
-        document.getElementById('tourText').innerText = title;
-        document.getElementById('tourSubText').innerText = desc;
-        let el = document.getElementById(targetId);
-        if(el) {
-            el.classList.add('spotlight'); el.classList.add('allow-click');
-            let rect = el.getBoundingClientRect();
-            if(pos==='right') { UI.tourTooltip.style.top = rect.top+"px"; UI.tourTooltip.style.left = (rect.left - 320)+"px"; }
-            else { UI.tourTooltip.style.top = "50%"; UI.tourTooltip.style.left = "50%"; UI.tourTooltip.style.transform = "translate(-50%, -50%)"; }
-        }
-    }
-    function nextTourStep() { setTimeout(() => { tourStep++; showTourStep(tourStep); }, 500); }
-    function forceNextStep() { nextTourStep(); }
-    function endDemoMode() {
-        isDemoMode = false;
-        demoData = { category: null, tags: new Set(), isDeleted: false, isAuto: true };
-        updateUI();
-        
-        UI.img.src = "";
-        UI.img.style.display = 'none';
-        UI.placeholder.style.display = 'block';
-    }
-
-    // --- 真實檔案 ---
-    document.getElementById('folderInput').addEventListener('change', function(e) {
-        // v8.6: 增加 HEIC 檢查
-        let tempFiles = Array.from(e.target.files);
-        let hasHeic = tempFiles.some(f => f.name.toLowerCase().endsWith('.heic'));
-        
-        if(hasHeic) {
-            alert("⚠️ 偵測到 .HEIC 格式照片！\n\nWindows 瀏覽器不支援直接預覽此格式，您可能會看到全黑或破損的圖片。\n建議先將 iPhone 照片轉為 JPG 後再使用。");
-        }
-
-        files = tempFiles.filter(f => f.type.startsWith('image/') || f.name.toLowerCase().endsWith('.heic'));
-        if (!files.length) { alert("沒有圖片！"); return; }
-        
-        fileData = files.map(f => ({ originalName: f.name, category: null, tags: new Set(), isDeleted: false, isAuto: true, customName: "" }));
-        const collator = new Intl.Collator(undefined, {numeric: true, sensitivity: 'base'});
-        files.sort((a, b) => collator.compare(a.name, b.name));
-        fileData.sort((a, b) => collator.compare(a.originalName, b.originalName));
-        
-        currentIndex = 0; 
-        
-        UI.downloadBtn.classList.add('active'); 
-        UI.reportBtn.classList.add('active'); 
-        
-        UI.placeholder.style.display = 'none';
-        UI.img.style.display = 'block';
-        UI.infoBar.style.display = 'flex'; 
-        
-        loadRealImage();
-    });
-    
-    function loadRealImage() {
-        if (!files.length) return;
-        const img = document.getElementById('currentImage');
-        if (img.src) URL.revokeObjectURL(img.src);
-        img.src = URL.createObjectURL(files[currentIndex]);
-        
-        img.style.transform = "rotate(0deg)"; rotationDeg = 0;
-        
-        // v8.4: 智慧狀態繼承
-        let d = fileData[currentIndex];
-        
-        if(d.customName === "" && d.isAuto === true) {
-            d.isAuto = currentAutoState;
-        }
-
-        // --- ⭐ v8.7: 切換照片時也要檢查是否需要智慧代入 ---
-        // 邏輯: 自訂模式(!isAuto) 且 沒分類 且 沒標籤 且 沒名字
-        if (!d.isAuto && !d.category && d.tags.size === 0 && !d.customName) {
-            let nameWithoutExt = d.originalName.replace(/\.[^/.]+$/, "");
-            d.customName = nameWithoutExt;
-        }
-        // ------------------------------------------------
-
-        updateUI();
-    }
-
-    function nextImage() {
-        if(currentIndex < files.length - 1) {
-            let prevCat = fileData[currentIndex].category;
-            currentIndex++;
-            if(isLocked && prevCat && !fileData[currentIndex].category) {
-                fileData[currentIndex].category = prevCat; 
+            const btn = document.getElementById(`${act.type}_${cmd.toUpperCase()}`);
+            if(btn) { 
+                btn.style.transform = "scale(0.95)"; 
+                setTimeout(()=>btn.style.transform="scale(1)", 100); 
             }
-            loadRealImage();
-        } else alert("🎉 全部完成！");
+        } 
+        else if (cmd === 'r') rotateImage();
     }
-    function prevImage() { if(currentIndex > 0) { currentIndex--; loadRealImage(); } }
 
     // --- Modal 與 設定 ---
     function openHelpModal(tab) { UI.helpModal.style.display = 'flex'; switchTab(tab); }
@@ -919,11 +863,9 @@
     }
     
     function openSettings() {
-        // 產生主分類設定列表
         const cBody = document.getElementById('catSettingsBody'); 
         cBody.innerHTML = '';
         categories.forEach((c,i) => {
-            // 注意：這裡移除了 maxlength="1"，現在可以輸入任意長度的文字
             cBody.innerHTML += `
                 <tr>
                     <td><input class="settings-input" value="${c.name}" onchange="categories[${i}].name=this.value"></td>
@@ -932,11 +874,9 @@
                 </tr>`;
         });
         
-        // 產生子標籤設定列表
         const tBody = document.getElementById('tagSettingsBody'); 
         tBody.innerHTML = '';
         tags.forEach((t,i) => {
-            // 注意：這裡也移除了 maxlength="1"
             tBody.innerHTML += `
                 <tr>
                     <td><input class="settings-input" value="${t.name}" onchange="tags[${i}].name=this.value"></td>
@@ -951,20 +891,15 @@
     function closeSettings() { UI.settingsModal.style.display = 'none'; }
     
     function saveSettings() {
-        // --- ⭐ 新增：檢查重複按鍵邏輯 ---
         let usedKeys = new Set();
-        let hasError = false;
-
-        // 定義一個檢查函數
+        
         const checkDuplicate = (list, typeName) => {
             for (let item of list) {
-                // 將按鍵轉為小寫並去除空白，確保比對準確
                 let k = (item.key || "").trim().toLowerCase();
-                
-                if (k) { // 如果有設定按鍵才檢查
+                if (k) {
                     if (usedKeys.has(k)) {
                         alert(`❌ 儲存失敗！\n\n按鍵 "${item.key.toUpperCase()}" 重複了！\n請檢查「${typeName}：${item.name}」`);
-                        return true; // 發現重複，回傳 true
+                        return true; 
                     }
                     usedKeys.add(k);
                 }
@@ -972,90 +907,134 @@
             return false;
         };
 
-        // 開始檢查
-        if (checkDuplicate(categories, "主分類")) return; // 如果有錯就中斷，不存檔
+        if (checkDuplicate(categories, "主分類")) return; 
         if (checkDuplicate(tags, "子標籤")) return;
 
-        // --- 檢查通過，執行儲存 ---
         initUI(); 
         closeSettings();
         updateUI();
-        
-        // 稍微提示一下使用者成功了
-        // alert("設定已儲存！"); // (選用)
     }
     function addCatRow() { categories.push({name:"", key:""}); openSettings(); }
     function addTagRow() { tags.push({name:"", key:""}); openSettings(); }
 
-    // --- ⭐ 新增：歷史紀錄功能邏輯 ⭐ ---
-    
-    // 1. 開關抽屜
+    // --- 歷史紀錄功能邏輯 ---
     function toggleHistory() {
         const panel = document.getElementById('historyPanel');
         panel.classList.toggle('active');
-        
-        // 如果是打開狀態，就更新清單
         if (panel.classList.contains('active')) {
             renderHistory();
         }
     }
 
-    // 2. 產生清單 (核心邏輯)
     function renderHistory() {
         if (fileData.length === 0) return;
-
         const listDiv = document.getElementById('historyList');
         listDiv.innerHTML = '';
 
-        // 準備計數器 (邏輯同 exportBat)
         let counts = {};
         let noCatSeq = 0;
 
-        // 從頭開始掃描每一張照片
         fileData.forEach((d, i) => {
-            // 只顯示「已經處理過」或是「當前這張」的照片
             if (i > currentIndex) return; 
 
             let displayHtml = "";
             let isCurrent = (i === currentIndex);
 
             if (d.isDeleted) {
-                // 刪除的照片
                 displayHtml = `<span class="history-trash">🗑️ ${d.originalName}</span>`;
             } else {
-                // 正常照片，計算檔名
                 let finalName = "";
-                
                 if (!d.category) {
-                    // 未分類 (原地)
                     noCatSeq++;
                     finalName = generateFilename(d, noCatSeq);
                 } else {
-                    // 有分類
                     if (!counts[d.category]) counts[d.category] = 0;
                     counts[d.category]++;
                     finalName = generateFilename(d, counts[d.category]);
                 }
-                
-                // 去除副檔名，讓畫面乾淨點
                 let shortName = finalName.split('.')[0];
                 displayHtml = `<span class="${isCurrent ? '' : 'history-seq'}">${shortName}</span>`;
             }
 
-            // 建立 HTML 元素
             let div = document.createElement('div');
             div.className = `history-item ${isCurrent ? 'current' : ''}`;
             div.innerHTML = `
                 ${displayHtml}
                 <span style="font-size:12px; color:#999;">#${i+1}</span>
             `;
-            
-            // 新的最上面 (倒序)
             listDiv.insertBefore(div, listDiv.firstChild);
         });
     }
 
-    // --- Export BAT (v8.10: 修正未分類的原地改名 + 流水號邏輯) ---
+    // --- Tour (新手導引) 邏輯 ---
+    function skipTour() {
+        UI.welcomeOverlay.style.display = 'none';
+        isTourActive = false;
+    }
+
+    function startTour() {
+        isTourActive = true;
+        tourStep = 0;
+        UI.welcomeOverlay.style.display = 'none';
+        UI.dimmer.style.display = 'block';
+        nextTourStep();
+    }
+    
+    // 簡單的導引步驟定義
+    const tourSteps = [
+        { el: '#catContainer', title: '步驟 1：選擇主分類', text: '試著點擊其中一個分類按鈕 (或按鍵盤 1)。' },
+        { el: '#tagContainer', title: '步驟 2：選擇子標籤', text: '可以複選後綴標籤，例如「現場」或「合照」。' },
+        { el: '#trashOverlay', title: '步驟 3：刪除照片', text: '遇到不想要的照片，按 Delete 鍵丟棄。' },
+        { el: '#downloadBtn', title: '步驟 4：執行整理', text: '全部完成後，點此下載 .bat 檔執行移動。' }
+    ];
+
+    function nextTourStep() {
+        if (!isTourActive) return;
+        
+        // 清除上一步
+        document.querySelectorAll('.allow-click').forEach(e => {
+            e.classList.remove('spotlight');
+            e.classList.remove('allow-click');
+        });
+
+        if (tourStep >= tourSteps.length) {
+            // 結束導引
+            isTourActive = false;
+            UI.dimmer.style.display = 'none';
+            UI.tourTooltip.style.display = 'none';
+            // 重置 Demo 資料
+            demoData = { category: null, tags: new Set(), isDeleted: false, customName: "", isAuto: true };
+            updateUI();
+            alert("🎉 恭喜！您已完成新手導引。\n現在請點擊右上角「📂 選擇資料夾」開始工作吧！");
+            return;
+        }
+
+        const step = tourSteps[tourStep];
+        const target = document.querySelector(step.el) || (step.el === '#trashOverlay' ? UI.imgPanel : null);
+        
+        if(target) {
+            target.classList.add('spotlight');
+            target.classList.add('allow-click');
+            
+            // 定位 Tooltip
+            const rect = target.getBoundingClientRect();
+            UI.tourTooltip.style.display = 'block';
+            UI.tourTooltip.style.top = (rect.bottom + 10) + 'px';
+            UI.tourTooltip.style.left = (rect.left + 20) + 'px';
+            
+            document.getElementById('tourText').textContent = step.title;
+            document.getElementById('tourSubText').textContent = step.text;
+            document.getElementById('tourStepBadge').textContent = tourStep + 1;
+        }
+        
+        tourStep++;
+    }
+
+    function forceNextStep() {
+        nextTourStep();
+    }
+
+    // --- Export BAT ---
     function exportBat() {
         if(isDemoMode) { alert("請先載入真實照片！"); return; }
         if(!files.length) return;
@@ -1071,7 +1050,7 @@
 
         let counts = {};
         let unsortedCount = 0;
-        let noCatSeq = 0; // ⭐ v8.10 新增：未分類的獨立流水號計數器
+        let noCatSeq = 0; 
         
         fileData.forEach(d => {
             if(d.isDeleted) { 
@@ -1084,13 +1063,11 @@
             let targetPath = "";
 
             if(!d.category) {
-                // 未分類 = 原地改名
                 unsortedCount++;
-                noCatSeq++; // 累加未分類的計數
-                finalName = generateFilename(d, noCatSeq); // 傳入計數
+                noCatSeq++; 
+                finalName = generateFilename(d, noCatSeq); 
                 targetPath = finalName;
             } else {
-                // 有分類 = 移入資料夾
                 safeCat = d.category.replace(/[\\/:*?"<>|]/g, '_');
                 if(!counts[d.category]) counts[d.category]=0;
                 counts[d.category]++;
@@ -1190,7 +1167,6 @@
                 </div>
         `;
 
-        // 1. 先顯示有分類的
         let globalCounts = {};
         categories.forEach(cat => {
             let catPhotos = fileData.filter(d => !d.isDeleted && d.category === cat.name);
@@ -1200,9 +1176,7 @@
                     if(!globalCounts[d.category]) globalCounts[d.category]=0;
                     globalCounts[d.category]++;
                     let finalName = generateFilename(d, globalCounts[d.category]);
-                    
                     let safeCat = d.category.replace(/[\\/:*?"<>|]/g, '_');
-                    
                     let ext = d.originalName.split('.').pop().toLowerCase();
                     let captionText = finalName.replace('.'+ext, '');
                     let relPath = `${safeCat}/${finalName}`;
@@ -1218,7 +1192,6 @@
             }
         });
 
-        // ⭐ v8.10 新增：顯示未分類 (原地保留) 的照片
         let uncategorized = fileData.filter(d => !d.isDeleted && !d.category);
         if (uncategorized.length > 0) {
             html += `<h2>📂 未分類 / 原地保留</h2><div class="photo-grid">`;
@@ -1226,12 +1199,9 @@
             uncategorized.forEach((d) => {
                 uncatCount++;
                 let finalName = generateFilename(d, uncatCount);
-                
                 let ext = d.originalName.split('.').pop().toLowerCase();
                 let captionText = finalName.replace('.'+ext, '');
-                // 原地保留的照片，路徑就是檔名 (因為 html 和照片在同一層)
                 let relPath = finalName; 
-
                 html += `
                     <div class="photo-card">
                         <div class="card-header" onclick="copyText(this)">${captionText}</div>
