@@ -172,7 +172,7 @@
         .settings-table { width: 100%; border-collapse: collapse; }
         .settings-table td { padding: 8px 0; border-bottom: 1px solid #f0f0f0; vertical-align: middle; }
         .settings-input { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; font-size: 14px; }
-        .key-input { width: 40px; text-align: center; text-transform: uppercase; font-weight: bold; }
+        .key-input { width: 60px; text-align: center; text-transform: uppercase; font-weight: bold; }
         .add-btn { width: 100%; padding: 10px; margin-top: 10px; background: #f8f9fa; border: 1px dashed #ccc; cursor: pointer; border-radius: 4px; transition: 0.2s; }
         .add-btn:hover { background: #e9ecef; }
         .save-btn { background: var(--primary); color: white; padding: 10px; border: none; border-radius: 6px; width: 100%; margin-top: 15px; font-weight: bold; cursor: pointer; }
@@ -814,18 +814,68 @@
         document.getElementById(t).classList.add('active'); document.getElementById('btn-'+t).classList.add('active');
     }
     function openSettings() {
-        const cBody = document.getElementById('catSettingsBody'); cBody.innerHTML = '';
-        categories.forEach((c,i) => cBody.innerHTML += `<tr><td><input class="settings-input" value="${c.name}" onchange="categories[${i}].name=this.value"></td><td><input class="settings-input key-input" value="${c.key}" onchange="categories[${i}].key=this.value" maxlength="1"></td><td><button class="icon-btn btn-del" onclick="event.stopPropagation(); categories.splice(${i},1); openSettings()">×</button></td></tr>`);
+        // 產生主分類設定列表
+        const cBody = document.getElementById('catSettingsBody'); 
+        cBody.innerHTML = '';
+        categories.forEach((c,i) => {
+            // 注意：這裡移除了 maxlength="1"，現在可以輸入任意長度的文字
+            cBody.innerHTML += `
+                <tr>
+                    <td><input class="settings-input" value="${c.name}" onchange="categories[${i}].name=this.value"></td>
+                    <td><input class="settings-input key-input" value="${c.key}" onchange="categories[${i}].key=this.value" placeholder="無"></td>
+                    <td><button class="icon-btn btn-del" onclick="event.stopPropagation(); categories.splice(${i},1); openSettings()">×</button></td>
+                </tr>`;
+        });
         
-        const tBody = document.getElementById('tagSettingsBody'); tBody.innerHTML = '';
-        tags.forEach((t,i) => tBody.innerHTML += `<tr><td><input class="settings-input" value="${t.name}" onchange="tags[${i}].name=this.value"></td><td><input class="settings-input key-input" value="${t.key}" onchange="tags[${i}].key=this.value" maxlength="1"></td><td><button class="icon-btn btn-del" onclick="event.stopPropagation(); tags.splice(${i},1); openSettings()">×</button></td></tr>`);
+        // 產生子標籤設定列表
+        const tBody = document.getElementById('tagSettingsBody'); 
+        tBody.innerHTML = '';
+        tags.forEach((t,i) => {
+            // 注意：這裡也移除了 maxlength="1"
+            tBody.innerHTML += `
+                <tr>
+                    <td><input class="settings-input" value="${t.name}" onchange="tags[${i}].name=this.value"></td>
+                    <td><input class="settings-input key-input" value="${t.key}" onchange="tags[${i}].key=this.value" placeholder="無"></td>
+                    <td><button class="icon-btn btn-del" onclick="event.stopPropagation(); tags.splice(${i},1); openSettings()">×</button></td>
+                </tr>`;
+        });
+
         UI.settingsModal.style.display = 'flex';
     }
     function closeSettings() { UI.settingsModal.style.display = 'none'; }
-    function saveSettings() {
+function saveSettings() {
+        // --- ⭐ 新增：檢查重複按鍵邏輯 ---
+        let usedKeys = new Set();
+        let hasError = false;
+
+        // 定義一個檢查函數
+        const checkDuplicate = (list, typeName) => {
+            for (let item of list) {
+                // 將按鍵轉為小寫並去除空白，確保比對準確
+                let k = (item.key || "").trim().toLowerCase();
+                
+                if (k) { // 如果有設定按鍵才檢查
+                    if (usedKeys.has(k)) {
+                        alert(`❌ 儲存失敗！\n\n按鍵 "${item.key.toUpperCase()}" 重複了！\n請檢查「${typeName}：${item.name}」`);
+                        return true; // 發現重複，回傳 true
+                    }
+                    usedKeys.add(k);
+                }
+            }
+            return false;
+        };
+
+        // 開始檢查
+        if (checkDuplicate(categories, "主分類")) return; // 如果有錯就中斷，不存檔
+        if (checkDuplicate(tags, "子標籤")) return;
+
+        // --- 檢查通過，執行儲存 ---
         initUI(); 
         closeSettings();
-        updateUI(); 
+        updateUI();
+        
+        // 稍微提示一下使用者成功了
+        // alert("設定已儲存！"); // (選用)
     }
     function addCatRow() { categories.push({name:"", key:""}); openSettings(); }
     function addTagRow() { tags.push({name:"", key:""}); openSettings(); }
