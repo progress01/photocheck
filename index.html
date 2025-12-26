@@ -60,6 +60,22 @@
 
         /* 分類按鈕 */
         .btn-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 8px; }
+        /* --- ⬇️ 在這裡貼上您提供的這段程式碼 ⬇️ --- */
+        #catContainer, #tagContainer {
+            max-height: 25vh;  /* 限制高度：螢幕高度的 25% */
+            overflow-y: auto;  /* 超過高度時，內部出現滾動條 */
+            
+            /* 美化外觀 */
+            padding-right: 5px; 
+            border: 1px solid #f8f9fa;
+            border-radius: 6px;
+            align-content: start;
+        }
+
+        /* 滾動條美化 */
+        #catContainer::-webkit-scrollbar, #tagContainer::-webkit-scrollbar { width: 6px; }
+        #catContainer::-webkit-scrollbar-thumb, #tagContainer::-webkit-scrollbar-thumb { background-color: #ccc; border-radius: 3px; }
+        /* --- ⬆️ 插入結束 ⬆️ --- */
         .cat-btn, .tag-btn { 
             background: white; border: 1px solid #ccc; padding: 10px 5px; border-radius: 6px; 
             cursor: pointer; font-size: 14px; text-align: center; transition: 0.2s; position: relative;
@@ -133,7 +149,25 @@
         .modal-body.active { display: block; }
 
         /* 設定表格 */
-        .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        /* --- ⭐ 修改開始：讓設定區塊自動填滿並獨立滾動 --- */
+        .settings-grid { 
+            display: grid; 
+            grid-template-columns: 1fr 1fr; 
+            gap: 20px; 
+            
+            /* 新增以下屬性來控制滾動 */
+            flex: 1;              /* 關鍵：自動佔滿剩餘高度 */
+            overflow-y: auto;     /* 關鍵：內容太長時顯示滾動條 */
+            min-height: 0;        /* 避免被內容撐開容器 */
+            align-content: start; /* 內容少時靠上對齊 */
+            padding-right: 5px;   /* 預留一點右邊距給捲軸 */
+            margin-bottom: 10px;  /* 與下方按鈕保持距離 */
+        }
+        
+        /* 讓設定區的捲軸也美化 (跟側邊欄統一風格) */
+        .settings-grid::-webkit-scrollbar { width: 6px; }
+        .settings-grid::-webkit-scrollbar-thumb { background-color: #ccc; border-radius: 3px; }
+        /* --- 修改結束 --- */
         .settings-col h3 { margin-top: 0; border-bottom: 1px solid #eee; padding-bottom: 10px; color: #555; }
         .settings-table { width: 100%; border-collapse: collapse; }
         .settings-table td { padding: 8px 0; border-bottom: 1px solid #f0f0f0; vertical-align: middle; }
