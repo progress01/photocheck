@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>照片歸檔工具V8.13 (加強版)</title>
+    <title>照片歸檔工具V8.14 (穩定版)</title>
     <style>
         :root { --primary: #0d6efd; --purple: #6610f2; --success: #198754; --warning: #ffc107; --danger: #dc3545; --bg: #f8f9fa; --overlay-bg: rgba(0,0,0,0.85); }
         body { font-family: "Microsoft JhengHei", "Segoe UI", sans-serif; margin: 0; padding: 20px; background: var(--bg); color: #333; height: 100vh; box-sizing: border-box; display: flex; flex-direction: column; overflow: hidden; }
@@ -206,12 +206,17 @@
         .history-item.current { background: #e7f1ff; border-left: 3px solid #0d6efd; }
         .history-seq { color: #0d6efd; font-weight: bold; font-family: monospace; }
         .history-trash { color: #dc3545; text-decoration: line-through; color:#aaa; }
+
+        /* [v8.14] 操作提示 */
+        .toast { position: fixed; left: 50%; top: 80px; transform: translateX(-50%); background: #333; color: #fff; padding: 10px 22px; border-radius: 30px; font-size: 16px; font-weight: bold; z-index: 3000; box-shadow: 0 4px 15px rgba(0,0,0,0.3); opacity: 0; transition: opacity 0.2s; pointer-events: none; }
+        .toast.show { opacity: 1; }
+        .toast.warn { background: #dc3545; }
     </style>
 </head>
 <body>
 
 <div class="navbar">
-    <div class="nav-title">📷 照片歸檔工具 <span style="font-size:0.8em; font-weight:normal;">v8.13</span></div>
+    <div class="nav-title">📷 照片歸檔工具 <span style="font-size:0.8em; font-weight:normal;">v8.14</span></div>
     
     <div class="nav-center-stats" id="navStats" style="display:none;">
         <span class="stat-origin" id="navOriginName">原始檔名</span>
@@ -306,6 +311,8 @@
         </div>
     </div>
 </div>
+
+<div id="toast" class="toast"></div>
 
 <div id="historyPanel" class="history-drawer">
     <div class="history-header">
@@ -494,9 +501,9 @@
         categories.forEach(c => {
             const btn = document.createElement('div');
             btn.className = 'cat-btn';
-            btn.id = `cat_${c.key}`; 
+            btn.id = `cat_${(c.key||'').toLowerCase()}`;
             btn.dataset.val = c.name;
-            btn.innerHTML = `${c.name} ${c.key?`<span class="key-badge">${c.key}</span>`:''}`;
+            btn.innerHTML = `${escapeHtml(c.name)} ${c.key?`<span class="key-badge">${escapeHtml(c.key.toUpperCase())}</span>`:''}`;
             btn.onclick = () => selectCategory(c.name);
             UI.catContainer.appendChild(btn);
             if(c.key) keyMap[c.key.toLowerCase()] = { type: 'cat', val: c.name };
@@ -506,9 +513,9 @@
         tags.forEach(t => {
             const btn = document.createElement('div');
             btn.className = 'tag-btn';
-            btn.id = `tag_${t.key}`;
+            btn.id = `tag_${(t.key||'').toLowerCase()}`;
             btn.dataset.val = t.name;
-            btn.innerHTML = `${t.name} ${t.key?`<span class="key-badge">${t.key}</span>`:''}`;
+            btn.innerHTML = `${escapeHtml(t.name)} ${t.key?`<span class="key-badge">${escapeHtml(t.key.toUpperCase())}</span>`:''}`;
             btn.onclick = () => toggleTag(t.name);
             UI.tagContainer.appendChild(btn);
             if(t.key) keyMap[t.key.toLowerCase()] = { type: 'tag', val: t.name };
@@ -531,17 +538,28 @@
             }
             return false;
         }
+        // [v8.14] 已經有分類進度時，重新選資料夾前先確認
+        const hasWork = fileData.some(d => d.category || d.tags.size || d.isDeleted || (d.isAuto === false));
+        if (hasWork && !confirm("⚠️ 重新選擇資料夾會清除目前所有的分類進度。\n\n如果還沒下載 .bat，請先按「取消」並下載。\n確定要重新選擇嗎？")) return false;
         return true;
     }
 
     function handleFiles(e) {
         if(isDemoMode) endDemoMode();
         
-        const rawFiles = Array.from(e.target.files).filter(f => f.name.match(/\.(jpg|jpeg|png|gif|webp|bmp)$/i));
+        const imgFiles = Array.from(e.target.files).filter(f => f.name.match(/\.(jpg|jpeg|png|gif|webp|bmp)$/i));
+        // [v8.14] 只讀取所選資料夾「最外層」的照片。
+        // 子資料夾 (例如 _TRASH 或已整理好的分類資料夾) 內的照片不讀，因為 .bat 只處理最外層的檔案。
+        const rawFiles = imgFiles.filter(f => !f.webkitRelativePath || f.webkitRelativePath.split('/').length <= 2);
+        const skippedSub = imgFiles.length - rawFiles.length;
         if(rawFiles.length === 0) {
-            alert("❌ 找不到圖片檔案！請確認選擇的資料夾內有圖片。");
+            alert(skippedSub
+                ? `❌ 最外層找不到圖片檔案！\n\n子資料夾內有 ${skippedSub} 張照片，但本工具只整理所選資料夾最外層的照片。`
+                : "❌ 找不到圖片檔案！請確認選擇的資料夾內有圖片。");
+            UI.folderInput.value = '';
             return;
         }
+        if (skippedSub) showToast(`已略過子資料夾內的 ${skippedSub} 張照片`, false, 4000);
 
         // 自然排序
         files = rawFiles.sort((a,b) => a.name.localeCompare(b.name, undefined, {numeric: true, sensitivity: 'base'}));
@@ -570,6 +588,8 @@
         // 更新 UI
         loadImage();
         updateUI();
+        // [v8.14] 清空選擇器，之後重新選同一個資料夾也能觸發
+        UI.folderInput.value = '';
     }
 
     function endDemoMode() {
@@ -677,10 +697,27 @@
         if(isTourActive && tourStep === 1 && name === categories[0].name) nextTourStep();
     }
 
+    // [v8.14] 操作提示 (標籤取消、取消刪除等容易沒注意到的變化)
+    let toastTimer = null;
+    function showToast(msg, warn, ms) {
+        const t = document.getElementById('toast');
+        if (!t) return;
+        t.textContent = msg;
+        t.classList.toggle('warn', !!warn);
+        t.classList.add('show');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => t.classList.remove('show'), ms || 1200);
+    }
+
+    function escapeHtml(s) {
+        return String(s == null ? "" : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+
     function toggleTag(name) {
         if (isTourActive && tourStep === 2 && name !== tags[0].name) return;
         let data = getData();
-        if (data.tags.has(name)) data.tags.delete(name); else data.tags.add(name);
+        if (data.tags.has(name)) { data.tags.delete(name); showToast(`－ 已取消標籤：${name}`, true); }
+        else { data.tags.add(name); showToast(`＋ 標籤：${name}`); }
         updateUI();
         if(isTourActive && tourStep === 2 && data.tags.has(tags[0].name)) nextTourStep();
     }
@@ -689,6 +726,7 @@
         if (isTourActive && tourStep !== 3) return;
         let data = getData();
         data.isDeleted = !data.isDeleted;
+        if (!data.isDeleted) showToast("↩ 已取消刪除");
         updateUI();
         if(isTourActive && tourStep === 3 && data.isDeleted) nextTourStep();
     }
@@ -874,34 +912,76 @@
         }
     }
     
+    // [v8.14] 點擊按鈕後立即移除焦點，避免之後按 Enter / 空白鍵時重複觸發按鈕 (例如跳兩張、鎖定被關掉)
+    document.addEventListener('click', (e) => {
+        const b = e.target.closest && e.target.closest('button, .tool-btn, .nav-btn');
+        if (b && typeof b.blur === 'function') b.blur();
+    }, true);
+
+    // [v8.14] 依「實體按鍵位置」判斷，不受注音輸入法、大小寫鎖定影響；數字鍵盤也可用
+    function normalizeKey(e) {
+        const c = e.code || "";
+        let m;
+        if ((m = c.match(/^Key([A-Z])$/))) return m[1].toLowerCase();
+        if ((m = c.match(/^(?:Digit|Numpad)([0-9])$/))) return m[1];
+        if (c === 'NumpadEnter') return 'enter';
+        const k = (e.key || "").toLowerCase();
+        if (k === 'process' || k === 'unidentified') return "";
+        return k;
+    }
+
+    // [v8.14] 組合鍵模式：若還有尚未送出的按鍵，先處理完再執行功能鍵 (避免分類被吃掉)
+    function flushKeyBuffer() {
+        clearTimeout(keyTimer);
+        if (keyBuffer) { const cmd = keyBuffer; keyBuffer = ""; executeKeyAction(cmd); }
+    }
+
     // --- ⌨️ 終極版鍵盤監聽 ---
     document.addEventListener('keydown', (e) => {
         if (UI.welcomeOverlay.style.display !== 'none') return;
         if (UI.helpModal.style.display === 'flex' || UI.settingsModal.style.display === 'flex') return;
-        
+
         if(e.key === "F2") {
             e.preventDefault();
+            flushKeyBuffer();
             UI.autoSeqCheck.checked = !UI.autoSeqCheck.checked;
             toggleNamingMode();
             return;
         }
 
-        if (document.activeElement === UI.customInput || document.activeElement === UI.startSeqInput) { 
-            if(e.key === "Enter") nextImage(); 
-            return; 
+        if (document.activeElement === UI.customInput || document.activeElement === UI.startSeqInput) {
+            // [v8.14] 注音選字時按的 Enter 只是確認文字，不換下一張
+            if (e.isComposing || e.keyCode === 229) return;
+            if(e.key === "Enter") { e.preventDefault(); if(!e.repeat) nextImage(); }
+            return;
         }
 
-        const keyRaw = e.key.toLowerCase();
+        // [v8.14] 其他輸入框 (如歷史抽屜之外的表單) 不攔截
+        const ae = document.activeElement;
+        if (ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA') && ae.type !== 'checkbox') return;
+
+        // [v8.14] Ctrl / Alt / Win 組合 (如 Ctrl+C、Ctrl+R) 不當成分類鍵；單獨按 Shift 等修飾鍵忽略
+        if (e.ctrlKey || e.altKey || e.metaKey) return;
+        if (['Shift','Control','Alt','Meta','CapsLock'].includes(e.key)) return;
+
+        const keyRaw = normalizeKey(e);
+        if (!keyRaw) return;
 
         // 功能鍵直接執行 (不進緩衝)
         if (['enter', 'arrowleft', 'arrowright', 'delete', 'backspace', 'escape'].includes(keyRaw)) {
-            clearTimeout(keyTimer); keyBuffer = ""; 
+            e.preventDefault();
+            flushKeyBuffer();
+            // [v8.14] 長按 Enter / Delete 不連續觸發 (避免一次跳過多張或刪除狀態來回切換)
+            if (e.repeat && (keyRaw === 'enter' || keyRaw === 'delete')) return;
             if (keyRaw === 'delete') markDeleted();
             else if (keyRaw === 'enter' && !isDemoMode && !isTourActive) nextImage();
             else if (keyRaw === 'arrowleft' && !isDemoMode && !isTourActive) prevImage();
             else if (keyRaw === 'arrowright' && !isDemoMode && !isTourActive) nextImage();
             return;
         }
+
+        // [v8.14] 長按分類 / 標籤鍵不連續觸發 (避免標籤加了又取消)
+        if (e.repeat) return;
 
         // 分歧點：檢查是否開啟組合鍵模式
         if (!isComboMode) {
@@ -922,7 +1002,7 @@
             if (act.type === 'cat') selectCategory(act.val);
             if (act.type === 'tag') toggleTag(act.val);
             
-            const btn = document.getElementById(`${act.type}_${cmd.toUpperCase()}`);
+            const btn = document.getElementById(`${act.type}_${cmd.toLowerCase()}`);
             if(btn) { 
                 btn.style.transform = "scale(0.95)"; 
                 setTimeout(()=>btn.style.transform="scale(1)", 100); 
@@ -940,60 +1020,107 @@
         document.getElementById(t).classList.add('active'); document.getElementById('btn-'+t).classList.add('active');
     }
     
+    // [v8.14] 設定改為「草稿」：按儲存才生效；改名會同步到已套用的照片
+    let draftCats = [], draftTags = [], settingsSnapshot = "";
+
     function openSettings() {
-        const cBody = document.getElementById('catSettingsBody'); 
-        cBody.innerHTML = '';
-        categories.forEach((c,i) => {
-            cBody.innerHTML += `
-                <tr>
-                    <td><input class="settings-input" value="${c.name}" onchange="categories[${i}].name=this.value"></td>
-                    <td><input class="settings-input key-input" value="${c.key}" onchange="categories[${i}].key=this.value" placeholder="無"></td>
-                    <td><button class="icon-btn btn-del" onclick="event.stopPropagation(); categories.splice(${i},1); openSettings()">×</button></td>
-                </tr>`;
-        });
-        
-        const tBody = document.getElementById('tagSettingsBody'); 
-        tBody.innerHTML = '';
-        tags.forEach((t,i) => {
-            tBody.innerHTML += `
-                <tr>
-                    <td><input class="settings-input" value="${t.name}" onchange="tags[${i}].name=this.value"></td>
-                    <td><input class="settings-input key-input" value="${t.key}" onchange="tags[${i}].key=this.value" placeholder="無"></td>
-                    <td><button class="icon-btn btn-del" onclick="event.stopPropagation(); tags.splice(${i},1); openSettings()">×</button></td>
-                </tr>`;
-        });
-
+        draftCats = categories.map(c => ({ name: c.name, key: c.key || "", _orig: c.name }));
+        draftTags = tags.map(t => ({ name: t.name, key: t.key || "", _orig: t.name }));
+        settingsSnapshot = JSON.stringify([draftCats, draftTags]);
+        renderSettings();
         UI.settingsModal.style.display = 'flex';
-    } 
+    }
 
-    function closeSettings() { UI.settingsModal.style.display = 'none'; }
-    
+    function renderSettings() {
+        const row = (list, i, item) => `
+                <tr>
+                    <td><input class="settings-input" value="${escapeHtml(item.name)}" oninput="${list}[${i}].name=this.value" placeholder="名稱"></td>
+                    <td><input class="settings-input key-input" value="${escapeHtml(item.key)}" oninput="${list}[${i}].key=this.value" placeholder="無"></td>
+                    <td><button class="icon-btn btn-del" onclick="event.stopPropagation(); ${list}.splice(${i},1); renderSettings()">×</button></td>
+                </tr>`;
+        document.getElementById('catSettingsBody').innerHTML = draftCats.map((c,i) => row('draftCats', i, c)).join('');
+        document.getElementById('tagSettingsBody').innerHTML = draftTags.map((t,i) => row('draftTags', i, t)).join('');
+    }
+
+    function closeSettings() {
+        if (UI.settingsModal.style.display !== 'flex') return;
+        if (JSON.stringify([draftCats, draftTags]) !== settingsSnapshot) {
+            if (confirm("設定有變更，要儲存嗎？\n\n按「確定」儲存，按「取消」放棄這次的變更。")) { saveSettings(); return; }
+        }
+        UI.settingsModal.style.display = 'none';
+    }
+
+    function countUsage(type, name) {
+        const all = fileData.slice();
+        return all.filter(d => type === 'cat' ? d.category === name : d.tags.has(name)).length;
+    }
+
     function saveSettings() {
+        // 整理：去頭尾空白；名稱與按鍵都空白的列直接略過
+        const clean = list => list
+            .map(x => ({ name: (x.name || "").trim(), key: (x.key || "").trim(), _orig: x._orig }))
+            .filter(x => x.name || x.key);
+        let newCats = clean(draftCats), newTags = clean(draftTags);
+
+        for (let [list, typeName] of [[newCats, "主分類"], [newTags, "子標籤"]]) {
+            let names = new Set();
+            for (let item of list) {
+                if (!item.name) { alert(`❌ 儲存失敗！\n\n${typeName}有一列設定了按鍵「${item.key.toUpperCase()}」但沒有名稱。`); return; }
+                if (names.has(item.name)) { alert(`❌ 儲存失敗！\n\n${typeName}「${item.name}」重複了！`); return; }
+                names.add(item.name);
+                if (item.key.length > 1 && !isComboMode) { alert(`❌ 儲存失敗！\n\n「${item.name}」的按鍵「${item.key.toUpperCase()}」是組合鍵，\n請先開啟上方的「組合鍵模式」。`); return; }
+            }
+        }
+
         let usedKeys = new Set();
-        
         const checkDuplicate = (list, typeName) => {
             for (let item of list) {
-                let k = (item.key || "").trim().toLowerCase();
+                let k = item.key.toLowerCase();
                 if (k) {
                     if (usedKeys.has(k)) {
                         alert(`❌ 儲存失敗！\n\n按鍵 "${item.key.toUpperCase()}" 重複了！\n請檢查「${typeName}：${item.name}」`);
-                        return true; 
+                        return true;
                     }
                     usedKeys.add(k);
                 }
             }
             return false;
         };
+        if (checkDuplicate(newCats, "主分類")) return;
+        if (checkDuplicate(newTags, "子標籤")) return;
 
-        if (checkDuplicate(categories, "主分類")) return; 
-        if (checkDuplicate(tags, "子標籤")) return;
+        // 找出被刪除、且已有照片在使用的項目
+        const keptCat = new Set(newCats.map(c => c._orig).filter(Boolean));
+        const keptTag = new Set(newTags.map(t => t._orig).filter(Boolean));
+        let warnings = [];
+        categories.forEach(c => { if (!keptCat.has(c.name)) { let n = countUsage('cat', c.name); if (n) warnings.push(`主分類「${c.name}」：${n} 張 (會變回未分類，原地改名)`); } });
+        tags.forEach(t => { if (!keptTag.has(t.name)) { let n = countUsage('tag', t.name); if (n) warnings.push(`子標籤「${t.name}」：${n} 張 (檔名會移除此標籤)`); } });
+        if (warnings.length && !confirm(`⚠️ 以下項目已經有照片在使用，刪除後：\n\n${warnings.join('\n')}\n\n確定要刪除嗎？`)) return;
 
-        initUI(); 
-        closeSettings();
+        // 同步已套用的照片：改名 → 換成新名稱；刪除 → 移除
+        const catMap = new Map(), tagMap = new Map();
+        categories.forEach(c => catMap.set(c.name, null));
+        tags.forEach(t => tagMap.set(t.name, null));
+        newCats.forEach(c => { if (c._orig) catMap.set(c._orig, c.name); });
+        newTags.forEach(t => { if (t._orig) tagMap.set(t._orig, t.name); });
+        const applyTo = d => {
+            if (d.category && catMap.has(d.category)) d.category = catMap.get(d.category);
+            let nt = new Set();
+            d.tags.forEach(t => { if (tagMap.has(t)) { if (tagMap.get(t)) nt.add(tagMap.get(t)); } else nt.add(t); });
+            d.tags = nt;
+        };
+        fileData.forEach(applyTo);
+        applyTo(demoData);
+
+        categories = newCats.map(c => ({ name: c.name, key: c.key }));
+        tags = newTags.map(t => ({ name: t.name, key: t.key }));
+
+        initUI();
+        UI.settingsModal.style.display = 'none';
         updateUI();
     }
-    function addCatRow() { categories.push({name:"", key:""}); openSettings(); }
-    function addTagRow() { tags.push({name:"", key:""}); openSettings(); }
+    function addCatRow() { draftCats.push({name:"", key:"", _orig:null}); renderSettings(); }
+    function addTagRow() { draftTags.push({name:"", key:"", _orig:null}); renderSettings(); }
 
     // --- 歷史紀錄功能邏輯 ---
     function toggleHistory() {
@@ -1108,25 +1235,51 @@
     function exportBat() {
         if(isDemoMode) { alert("請先載入真實照片！"); return; }
         if(!files.length) return;
-        let bat = "@echo off\r\nchcp 65001 >nul\r\necho 正在整理照片...\r\n\r\n";
-        
+        // [v8.14] % 在 bat 裡有特殊意義，檔名中的 % 要寫成 %%
+        const q = s => String(s).replace(/%/g, '%%');
+
+        let bat = "@echo off\r\nchcp 65001 >nul\r\nsetlocal\r\n";
+        // [v8.14] 不論從哪裡執行 (包含「以系統管理員身分執行」)，都切換到 bat 所在的資料夾
+        bat += 'cd /d "%~dp0"\r\n';
+        bat += "set ok=0\r\nset skip=0\r\nset fail=0\r\n";
+        bat += "echo 正在整理照片...\r\n\r\n";
+
         let folders = new Set(); folders.add("_TRASH");
-        
-        fileData.forEach(d => { 
-            if(d.category && !d.isDeleted) folders.add(d.category.replace(/[\\/:*?"<>|]/g, '_')); 
+
+        fileData.forEach(d => {
+            if(d.category && !d.isDeleted) folders.add(d.category.replace(/[\\/:*?"<>|]/g, '_'));
         });
-        folders.forEach(f => bat += `if not exist "${f}" md "${f}"\r\n`);
+        folders.forEach(f => bat += `if not exist "${q(f)}" md "${q(f)}"\r\n`);
         bat += "\r\n";
 
         let unsortedCount = 0;
-        
+
+        // [v8.14] 每一筆都檢查：目標已存在 → 略過；移動失敗 → 記錄；最後統一回報
+        const moveBlock = (src, target) => {
+            let s = q(src), t = q(target);
+            let b = `if exist "${t}" (\r\n`;
+            b += `  echo [略過] 檔案已存在: "${t}"\r\n`;
+            b += `  set /a skip+=1\r\n`;
+            b += `) else (\r\n`;
+            b += `  move "${s}" "${t}" >nul 2>&1\r\n`;
+            b += `  if errorlevel 1 (\r\n`;
+            b += `    echo [失敗] 無法移動: "${s}"\r\n`;
+            b += `    set /a fail+=1\r\n`;
+            b += `  ) else (\r\n`;
+            b += `    set /a ok+=1\r\n`;
+            b += `  )\r\n`;
+            b += `)\r\n`;
+            return b;
+        };
+
         // 使用 getFilenameForIndex 確保一致性
         fileData.forEach((d, i) => {
-            if(d.isDeleted) { 
-                bat += `move "${d.originalName}" "_TRASH\\${d.originalName}"\r\n`; 
-                return; 
+            if(d.isDeleted) {
+                // [v8.14] 丟入 _TRASH 也不覆蓋同名檔案
+                bat += moveBlock(d.originalName, `_TRASH\\${d.originalName}`);
+                return;
             }
-            
+
             let finalName = getFilenameForIndex(i); // [NEW]
             let targetPath = "";
             let safeCat = d.category ? d.category.replace(/[\\/:*?"<>|]/g, '_') : "";
@@ -1134,18 +1287,26 @@
             if(!d.category) {
                 unsortedCount++;
                 targetPath = finalName;
+                // [v8.14] 原地且檔名不變 → 不需處理；只差大小寫 (如 .JPG → .jpg) → 用 ren 改名
+                if (targetPath === d.originalName) { bat += `set /a ok+=1\r\n`; return; }
+                if (targetPath.toLowerCase() === d.originalName.toLowerCase()) {
+                    bat += `ren "${q(d.originalName)}" "${q(targetPath)}" >nul 2>&1\r\n`;
+                    bat += `if errorlevel 1 (\r\n  echo [失敗] 無法改名: "${q(d.originalName)}"\r\n  set /a fail+=1\r\n) else (\r\n  set /a ok+=1\r\n)\r\n`;
+                    return;
+                }
             } else {
                 targetPath = `${safeCat}\\${finalName}`;
             }
-            
-            bat += `if not exist "${targetPath}" (\r\n`;
-            bat += `  move "${d.originalName}" "${targetPath}"\r\n`;
-            bat += `) else (\r\n`;
-            bat += `  echo [略過] 檔案已存在: "${targetPath}"\r\n`;
-            bat += `)\r\n`;
+
+            bat += moveBlock(d.originalName, targetPath);
         });
-        
-        bat += `\r\necho 整理完成！ (含 ${unsortedCount} 張原地改名)\r\npause`;
+
+        bat += `\r\necho.\r\necho ===============================\r\n`;
+        bat += `echo  整理完成！（含 ${unsortedCount} 張原地改名）\r\n`;
+        bat += `echo  成功：%ok% 張\r\n`;
+        bat += `if %skip% gtr 0 echo  [!] 略過：%skip% 張 （目標已有同名檔案，原檔仍留在原處，請往上查看 [略過]）\r\n`;
+        bat += `if %fail% gtr 0 echo  [!] 失敗：%fail% 張 （請往上查看 [失敗]，檔案可能已被移動或正在使用中）\r\n`;
+        bat += `echo ===============================\r\npause`;
         
         const blob = new Blob([bat], {type: 'text/plain;charset=utf-8'});
         const link = document.createElement("a");
